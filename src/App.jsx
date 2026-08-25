@@ -3,7 +3,46 @@ import './App.css'
 import kisetsuLogo from './assets/kisetsu-logo.png'
 import magnateLogo from './assets/magnate-logo.png'
 
+import tshirt01 from './assets/kisetsu-tshirt1.jpg'
+import tshirt02 from './assets/kisetsu-tshirt2.jpg'
+import tshirt03 from './assets/kisetsu-tshirt3.jpg'
+
+
 function App() {
+
+  const whatsappLink = 'https://wa.me/971545735918'
+
+  const facebookLink =
+    'https://www.facebook.com/kisetsuexpressions/'
+
+
+  const tshirts = [
+    {
+      number: '01',
+      image: tshirt01,
+      name: 'Kisetsu T-Shirt 01',
+      description:
+        'A creative expression designed for everyday wear.',
+    },
+
+    {
+      number: '02',
+      image: tshirt02,
+      name: 'Kisetsu T-Shirt 02',
+      description:
+        'A unique design created to express your personality.',
+    },
+
+    {
+      number: '03',
+      image: tshirt03,
+      name: 'Kisetsu T-Shirt 03',
+      description:
+        'Wear your story with a design made to stand out.',
+    },
+  ]
+
+
   return (
     <div className="website">
 
@@ -13,22 +52,40 @@ function App() {
 
       <header className="navbar">
 
-        <a href="#home" className="nav-logo">
+        <a
+          href="#home"
+          className="nav-logo"
+        >
           <img
             src={kisetsuLogo}
             alt="Kisetsu Expressions"
           />
         </a>
 
+
         <nav className="nav-links">
-          <a href="#home">Home</a>
-          <a href="#about">About</a>
-          <a href="#services">Services</a>
-          <a href="#contact">Contact</a>
+
+          <a href="#home">
+            Home
+          </a>
+
+          <a href="#about">
+            About
+          </a>
+
+          <a href="#tshirts">
+            T-Shirts
+          </a>
+
+          <a href="#contact">
+            Contact
+          </a>
+
         </nav>
 
+
         <a
-          href="https://wa.me/971545735918"
+          href={whatsappLink}
           target="_blank"
           rel="noopener noreferrer"
           className="nav-contact"
@@ -40,43 +97,49 @@ function App() {
 
 
       {/* =========================
-          HERO SECTION
+          HERO
       ========================== */}
 
       <main>
 
-        <section id="home" className="hero-section">
-
-          <div className="hero-overlay"></div>
+        <section
+          id="home"
+          className="hero-section"
+        >
 
           <div className="hero-content">
 
             <p className="eyebrow">
-              CREATIVE • EXPRESSIVE • PURPOSEFUL
+              KISETSU EXPRESSIONS
             </p>
+
 
             <h1>
-              Your Story.
+              Wear Your
               <br />
-              Beautifully Gifted.
+              Story.
             </h1>
 
+
             <p className="hero-description">
-              Thoughtfully crafted gifts and creative expressions
-              designed to turn meaningful moments into lasting memories.
+              T-shirts designed to express your personality,
+              your moments, and the stories that make you
+              who you are.
             </p>
+
 
             <div className="hero-buttons">
 
               <a
-                href="#services"
+                href="#tshirts"
                 className="button button-primary"
               >
-                Explore Our Services
+                Explore T-Shirts
               </a>
 
+
               <a
-                href="https://wa.me/971545735918"
+                href={whatsappLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="button button-secondary"
@@ -103,14 +166,19 @@ function App() {
               KISETSU EXPRESSIONS
             </p>
 
+
             <h2>
-              Every gift tells a story.
+              More than a shirt.
+              <br />
+              It's an expression.
             </h2>
 
+
             <p>
-              At Kisetsu Expressions, we believe that the best gifts
-              are more than objects. They carry emotions, memories,
-              appreciation, and stories that deserve to be remembered.
+              At Kisetsu Expressions, we believe what you
+              wear can say something about who you are.
+              Our T-shirts are created to bring personality,
+              creativity, and meaning into everyday style.
             </p>
 
           </div>
@@ -122,42 +190,50 @@ function App() {
             ABOUT
         ========================== */}
 
-        <section id="about" className="about-section">
+        <section
+          id="about"
+          className="about-section"
+        >
 
           <div className="section-label">
-            ABOUT US
+            ABOUT KISETSU
           </div>
+
 
           <div className="about-grid">
 
             <div className="about-heading">
 
               <h2>
-                Made with
+                Made to
                 <br />
-                meaning.
+                express.
               </h2>
 
             </div>
 
+
             <div className="about-text">
 
               <p>
-                Kisetsu Expressions is a creative gifting store
-                dedicated to creating thoughtful and memorable
-                expressions for every occasion.
+                Kisetsu Expressions is a creative T-shirt
+                brand focused on meaningful designs and
+                expressive everyday wear.
               </p>
 
-              <p>
-                From personal celebrations to meaningful surprises,
-                we help transform your ideas into something tangible,
-                beautiful, and worth remembering.
-              </p>
 
               <p>
-                Whether you're celebrating someone special,
-                expressing gratitude, or simply making someone smile,
-                Kisetsu Expressions is here to help tell your story.
+                Each design is created with the idea that
+                clothing can be more than something you wear.
+                It can represent an idea, a feeling, a memory,
+                or simply your personality.
+              </p>
+
+
+              <p>
+                This is just the beginning. As Kisetsu grows,
+                more products and creative expressions will
+                be introduced.
               </p>
 
             </div>
@@ -168,92 +244,88 @@ function App() {
 
 
         {/* =========================
-            SERVICES
+            T-SHIRT COLLECTION
         ========================== */}
 
-        <section id="services" className="services-section">
+        <section
+          id="tshirts"
+          className="tshirts-section"
+        >
 
           <div className="services-header">
 
             <p className="eyebrow">
-              WHAT WE DO
+              THE COLLECTION
             </p>
 
+
             <h2>
-              Expressions made
+              T-Shirts made
               <br />
-              for every occasion.
+              to be seen.
             </h2>
 
           </div>
 
 
-          <div className="service-grid">
+          <div className="tshirt-grid">
 
-            <article className="service-card">
+            {tshirts.map((shirt) => (
 
-              <span className="service-number">
-                01
-              </span>
+              <article
+                className="tshirt-card"
+                key={shirt.number}
+              >
 
-              <h3>
-                Personalized Gifts
-              </h3>
+                <div className="tshirt-image">
 
-              <p>
-                Thoughtful personalized gifts created to make
-                someone's special moment even more memorable.
-              </p>
+                  <img
+                    src={shirt.image}
+                    alt={shirt.name}
+                  />
 
-              <a href="#contact">
-                Learn more →
-              </a>
-
-            </article>
+                </div>
 
 
-            <article className="service-card">
+                <div className="tshirt-info">
 
-              <span className="service-number">
-                02
-              </span>
+                  <div>
 
-              <h3>
-                Creative Expressions
-              </h3>
-
-              <p>
-                Unique creative pieces designed around your ideas,
-                stories, personality, and special occasions.
-              </p>
-
-              <a href="#contact">
-                Learn more →
-              </a>
-
-            </article>
+                    <span className="service-number">
+                      {shirt.number}
+                    </span>
 
 
-            <article className="service-card">
+                    <h3>
+                      {shirt.name}
+                    </h3>
 
-              <span className="service-number">
-                03
-              </span>
 
-              <h3>
-                Custom Projects
-              </h3>
+                    <p>
+                      {shirt.description}
+                    </p>
 
-              <p>
-                Have something specific in mind? Let's turn your
-                concept into a meaningful creative project.
-              </p>
+                  </div>
 
-              <a href="#contact">
-                Start a project →
-              </a>
 
-            </article>
+                  <a
+                    href={
+                      whatsappLink +
+                      '?text=Hi%20Kisetsu%20Expressions!%20I%27m%20interested%20in%20' +
+                      encodeURIComponent(shirt.name) +
+                      '.'
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Order via WhatsApp →
+                  </a>
+
+                </div>
+
+              </article>
+
+            ))}
 
           </div>
 
@@ -269,22 +341,26 @@ function App() {
           <div className="cta-content">
 
             <p className="eyebrow">
-              HAVE AN IDEA?
+              READY TO EXPRESS YOURSELF?
             </p>
+
 
             <h2>
-              Let's create
+              Find your
               <br />
-              something meaningful.
+              expression.
             </h2>
 
+
             <p>
-              Tell us what you have in mind and let's create
-              something special together.
+              See something you like? Contact Kisetsu
+              Expressions directly and let's get your
+              T-shirt ready.
             </p>
 
+
             <a
-              href="https://wa.me/971545735918"
+              href={whatsappLink}
               target="_blank"
               rel="noopener noreferrer"
               className="button button-light"
@@ -301,23 +377,28 @@ function App() {
             CONTACT
         ========================== */}
 
-        <section id="contact" className="contact-section">
+        <section
+          id="contact"
+          className="contact-section"
+        >
 
           <div className="section-label">
             GET IN TOUCH
           </div>
+
 
           <div className="contact-grid">
 
             <div>
 
               <h2>
-                We'd love to
+                Let's talk
                 <br />
-                hear from you.
+                T-shirts.
               </h2>
 
             </div>
+
 
             <div className="contact-details">
 
@@ -327,8 +408,9 @@ function App() {
                   WHATSAPP
                 </span>
 
+
                 <a
-                  href="https://wa.me/971545735918"
+                  href={whatsappLink}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -344,8 +426,9 @@ function App() {
                   FACEBOOK
                 </span>
 
+
                 <a
-                  href="https://www.facebook.com/kisetsuexpressions/"
+                  href={facebookLink}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -360,6 +443,7 @@ function App() {
                 <span>
                   LOCATION
                 </span>
+
 
                 <p>
                   United Arab Emirates
@@ -391,8 +475,9 @@ function App() {
               alt="Kisetsu Expressions"
             />
 
+
             <p>
-              Your Story, Beautifully Gifted.
+              Wear your story.
             </p>
 
           </div>
@@ -406,17 +491,21 @@ function App() {
                 NAVIGATE
               </h4>
 
+
               <a href="#home">
                 Home
               </a>
+
 
               <a href="#about">
                 About
               </a>
 
-              <a href="#services">
-                Services
+
+              <a href="#tshirts">
+                T-Shirts
               </a>
+
 
               <a href="#contact">
                 Contact
@@ -431,16 +520,18 @@ function App() {
                 CONNECT
               </h4>
 
+
               <a
-                href="https://wa.me/971545735918"
+                href={whatsappLink}
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 WhatsApp
               </a>
 
+
               <a
-                href="https://www.facebook.com/kisetsuexpressions/"
+                href={facebookLink}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -454,11 +545,14 @@ function App() {
         </div>
 
 
-        {/* Powered by Magnate */}
+        {/* =========================
+            POWERED BY MAGNATE
+        ========================== */}
 
         <div className="powered-by">
 
           <div className="powered-line"></div>
+
 
           <div className="powered-content">
 
@@ -466,9 +560,11 @@ function App() {
               KISETSU
             </span>
 
+
             <span className="powered-text">
               POWERED BY
             </span>
+
 
             <img
               src={magnateLogo}
@@ -478,16 +574,23 @@ function App() {
 
           </div>
 
+
           <div className="powered-line"></div>
 
         </div>
 
 
+        {/* =========================
+            FOOTER BOTTOM
+        ========================== */}
+
         <div className="footer-bottom">
 
           <p>
-            © 2026 Kisetsu Expressions. All rights reserved.
+            © 2026 Kisetsu Expressions.
+            All rights reserved.
           </p>
+
 
           <p>
             Powered by Magnate
@@ -500,5 +603,6 @@ function App() {
     </div>
   )
 }
+
 
 export default App
