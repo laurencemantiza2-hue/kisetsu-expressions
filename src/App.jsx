@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import './App.css'
+import ProductModal from './ProductModal.jsx'
 
 import kisetsuLogo from './assets/kisetsu-logo.png'
 import magnateLogo from './assets/magnate-logo.png'
@@ -12,23 +13,8 @@ import tshirt04Red from './assets/tshirt-black-red-print.jpg'
 import tshirt04White from './assets/tshirt-black-white-print.jpg'
 
 function TshirtSwapImage({ primary, altImage, name }) {
-  const [showAlt, setShowAlt] = useState(false)
-
-  function handleClick() {
-    const canHover = window.matchMedia(
-      '(hover: hover) and (pointer: fine)'
-    ).matches
-
-    if (!canHover) {
-      setShowAlt((open) => !open)
-    }
-  }
-
   return (
-    <div
-      className={'tshirt-swap' + (showAlt ? ' is-alt' : '')}
-      onClick={handleClick}
-    >
+    <div className="tshirt-swap">
       <img
         src={primary}
         alt={name}
@@ -44,6 +30,7 @@ function TshirtSwapImage({ primary, altImage, name }) {
 }
 
 function App() {
+  const [selectedProduct, setSelectedProduct] = useState(null)
 
   const whatsappLink = 'https://wa.me/971545735918'
 
@@ -83,8 +70,18 @@ function App() {
       name: 'Kisetsu T-Shirt 04',
       description:
         'A black tee with a bold print — red or white, same design.',
+      printOptions: [
+        { label: 'Red', image: tshirt04Red },
+        { label: 'White', image: tshirt04White },
+      ],
     },
   ]
+
+  function openProductModal(shirt) {
+    if (shirt.printOptions) {
+      setSelectedProduct(shirt)
+    }
+  }
 
 
   return (
@@ -317,11 +314,17 @@ function App() {
             {tshirts.map((shirt) => (
 
               <article
-                className="tshirt-card"
+                className={
+                  'tshirt-card' +
+                  (shirt.printOptions ? ' tshirt-card-interactive' : '')
+                }
                 key={shirt.number}
               >
 
-                <div className="tshirt-image">
+                <div
+                  className="tshirt-image"
+                  onClick={() => openProductModal(shirt)}
+                >
 
                   {shirt.hoverImage ? (
                     <TshirtSwapImage
@@ -360,18 +363,28 @@ function App() {
                   </div>
 
 
-                  <a
-                    href={
-                      whatsappLink +
-                      '?text=Hi%20Kisetsu%20Expressions!%20I%27m%20interested%20in%20' +
-                      encodeURIComponent(shirt.name) +
-                      '.'
-                    }
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Order via WhatsApp →
-                  </a>
+                  {shirt.printOptions ? (
+                    <button
+                      type="button"
+                      className="tshirt-order-trigger"
+                      onClick={() => openProductModal(shirt)}
+                    >
+                      Order via WhatsApp →
+                    </button>
+                  ) : (
+                    <a
+                      href={
+                        whatsappLink +
+                        '?text=Hi%20Kisetsu%20Expressions!%20I%27m%20interested%20in%20' +
+                        encodeURIComponent(shirt.name) +
+                        '.'
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Order via WhatsApp →
+                    </a>
+                  )}
 
                 </div>
 
@@ -651,6 +664,15 @@ function App() {
         </div>
 
       </footer>
+
+      {selectedProduct ? (
+        <ProductModal
+          key={selectedProduct.number}
+          product={selectedProduct}
+          whatsappLink={whatsappLink}
+          onClose={() => setSelectedProduct(null)}
+        />
+      ) : null}
 
     </div>
   )

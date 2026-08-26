@@ -427,6 +427,10 @@ a {
   position: relative;
   width: 100%;
   height: 100%;
+}
+
+.tshirt-card-interactive .tshirt-image,
+.tshirt-card-interactive .tshirt-order-trigger {
   cursor: pointer;
 }
 
@@ -453,14 +457,6 @@ a {
   .tshirt-swap:hover .tshirt-swap-primary {
     opacity: 0;
   }
-}
-
-.tshirt-swap.is-alt .tshirt-swap-alt {
-  opacity: 1;
-}
-
-.tshirt-swap.is-alt .tshirt-swap-primary {
-  opacity: 0;
 }
 
 
@@ -505,7 +501,8 @@ a {
   color: rgba(255, 255, 255, 0.68);
 }
 
-.tshirt-info a {
+.tshirt-info a,
+.tshirt-order-trigger {
   display: inline-block;
 
   padding-top: 30px;
@@ -515,14 +512,288 @@ a {
   font-size: 13px;
   font-weight: 800;
 
+  background: none;
+  border: 0;
+  font-family: inherit;
+  text-align: left;
+
   transition:
     color 0.3s ease,
     transform 0.3s ease;
 }
 
-.tshirt-info a:hover {
+.tshirt-info a:hover,
+.tshirt-order-trigger:hover {
   color: white;
   transform: translateX(4px);
+}
+
+
+/* =========================================
+   PRODUCT MODAL
+========================================= */
+
+.product-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  background: rgba(13, 29, 41, 0.58);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  animation: product-modal-fade 0.28s ease;
+}
+
+.product-modal {
+  position: relative;
+
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+
+  width: min(980px, 100%);
+  max-height: min(92vh, 860px);
+
+  overflow: auto;
+
+  background: #f5f1e8;
+  color: #172d3d;
+
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.28);
+
+  animation: product-modal-rise 0.32s ease;
+}
+
+.product-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid rgba(23, 45, 61, 0.16);
+  border-radius: 50%;
+
+  background: rgba(245, 241, 232, 0.92);
+  color: #123b5d;
+
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.product-modal-close:hover {
+  background: #123b5d;
+  color: #f5f1e8;
+}
+
+.product-modal-image {
+  background: #eee8dc;
+  min-height: 360px;
+}
+
+.product-modal-image img {
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+  max-height: 92vh;
+
+  display: block;
+  object-fit: contain;
+}
+
+.product-modal-details {
+  padding: 52px 40px 40px;
+}
+
+.product-modal-number {
+  margin: 0 0 14px;
+
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+
+  color: #b22222;
+}
+
+.product-modal-details h2 {
+  margin: 0;
+
+  font-size: clamp(32px, 4vw, 46px);
+  line-height: 1.05;
+  letter-spacing: -1.5px;
+
+  color: #123b5d;
+}
+
+.product-modal-description {
+  margin: 18px 0 28px;
+
+  font-size: 16px;
+  line-height: 1.7;
+
+  color: #56616a;
+}
+
+.product-modal-group {
+  margin-bottom: 22px;
+}
+
+.product-modal-label {
+  margin: 0 0 12px;
+
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+
+  color: #b22222;
+}
+
+.product-modal-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.product-choice {
+  min-width: 54px;
+  min-height: 44px;
+
+  padding: 0 16px;
+
+  border: 1px solid #123b5d;
+  border-radius: 40px;
+
+  background: transparent;
+  color: #123b5d;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    background 0.25s ease,
+    color 0.25s ease;
+}
+
+.product-choice.is-selected,
+.product-choice:hover {
+  background: #123b5d;
+  color: #f5f1e8;
+}
+
+.product-choice.is-selected {
+  background: #b22222;
+  border-color: #b22222;
+  color: white;
+}
+
+.product-modal-error {
+  margin: 12px 0 0;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  color: #b22222;
+}
+
+.product-quantity {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  border: 1px solid rgba(23, 45, 61, 0.18);
+  border-radius: 40px;
+
+  overflow: hidden;
+}
+
+.product-quantity button {
+  width: 46px;
+  height: 44px;
+
+  border: 0;
+  background: transparent;
+  color: #123b5d;
+
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.product-quantity button:hover {
+  background: rgba(18, 59, 93, 0.08);
+}
+
+.product-quantity span {
+  min-width: 36px;
+
+  font-size: 16px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.product-order-button {
+  width: 100%;
+  min-height: 54px;
+
+  margin-top: 8px;
+
+  border: 0;
+  border-radius: 40px;
+
+  background: #123b5d;
+  color: white;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+
+  cursor: pointer;
+
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.product-order-button:hover {
+  background: #b22222;
+  transform: translateY(-2px);
+}
+
+@keyframes product-modal-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes product-modal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 
@@ -836,6 +1107,21 @@ a {
     gap: 18px;
   }
 
+  .product-modal {
+    grid-template-columns: 1fr;
+
+    max-height: 92vh;
+  }
+
+  .product-modal-image img {
+    min-height: 240px;
+    max-height: 42vh;
+  }
+
+  .product-modal-details {
+    padding: 28px 24px 28px;
+  }
+
   .contact-grid {
     grid-template-columns: 1fr;
 
@@ -929,6 +1215,21 @@ a {
 
   .tshirt-info h3 {
     font-size: 25px;
+  }
+
+  .product-modal-overlay {
+    padding: 12px;
+    align-items: flex-start;
+  }
+
+  .product-modal-image img {
+    min-height: 200px;
+    max-height: 34vh;
+  }
+
+  .product-choice,
+  .product-quantity button {
+    min-height: 46px;
   }
 
   .cta-section {
