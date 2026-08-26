@@ -78,9 +78,7 @@ function App() {
   ]
 
   function openProductModal(shirt) {
-    if (shirt.printOptions) {
-      setSelectedProduct(shirt)
-    }
+    setSelectedProduct(shirt)
   }
 
 
@@ -314,10 +312,7 @@ function App() {
             {tshirts.map((shirt) => (
 
               <article
-                className={
-                  'tshirt-card' +
-                  (shirt.printOptions ? ' tshirt-card-interactive' : '')
-                }
+                className="tshirt-card tshirt-card-interactive"
                 key={shirt.number}
               >
 
@@ -363,28 +358,13 @@ function App() {
                   </div>
 
 
-                  {shirt.printOptions ? (
-                    <button
-                      type="button"
-                      className="tshirt-order-trigger"
-                      onClick={() => openProductModal(shirt)}
-                    >
-                      Order via WhatsApp →
-                    </button>
-                  ) : (
-                    <a
-                      href={
-                        whatsappLink +
-                        '?text=Hi%20Kisetsu%20Expressions!%20I%27m%20interested%20in%20' +
-                        encodeURIComponent(shirt.name) +
-                        '.'
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Order via WhatsApp →
-                    </a>
-                  )}
+                  <button
+                    type="button"
+                    className="tshirt-order-trigger"
+                    onClick={() => openProductModal(shirt)}
+                  >
+                    Order via WhatsApp →
+                  </button>
 
                 </div>
 

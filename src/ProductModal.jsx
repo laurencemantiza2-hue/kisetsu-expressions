@@ -53,28 +53,34 @@ function ProductModal({ product, whatsappLink, onClose }) {
     setQuantity((current) => current + 1)
   }
 
-  function handleOrder() {
-    if (!size) {
-      setSizeError(true)
-      return
-    }
-
-    let message =
+  function buildOrderMessage() {
+    const lines = [
       'Hi Kisetsu Expressions! I\'m interested in ordering ' +
-      product.name +
-      '.'
+        product.name +
+        '.',
+      '',
+    ]
 
     if (printColor) {
-      message += ' Print Color: ' + printColor + '.'
+      lines.push('Print Color: ' + printColor)
     }
 
-    message += ' Size: ' + size + '. Quantity: ' + quantity + '.'
+    lines.push('Size: ' + size)
+    lines.push('Quantity: ' + quantity)
 
-    window.open(
-      whatsappLink + '?text=' + encodeURIComponent(message),
-      '_blank',
-      'noopener,noreferrer'
-    )
+    return lines.join('\n')
+  }
+
+  const whatsappUrl =
+    whatsappLink + '?text=' + encodeURIComponent(buildOrderMessage())
+
+  function handleOrder(event) {
+    event.stopPropagation()
+
+    if (!size) {
+      event.preventDefault()
+      setSizeError(true)
+    }
   }
 
   return (
@@ -204,13 +210,16 @@ function ProductModal({ product, whatsappLink, onClose }) {
             </div>
           </div>
 
-          <button
-            type="button"
+          <a
             className="product-order-button"
+            href={size ? whatsappUrl : '#'}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-disabled={!size}
             onClick={handleOrder}
           >
             ORDER VIA WHATSAPP →
-          </button>
+          </a>
         </div>
       </div>
     </div>

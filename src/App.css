@@ -753,6 +753,10 @@ a {
 
   margin-top: 8px;
 
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
   border: 0;
   border-radius: 40px;
 
@@ -763,6 +767,8 @@ a {
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.6px;
+  text-decoration: none;
+  text-align: center;
 
   cursor: pointer;
 
