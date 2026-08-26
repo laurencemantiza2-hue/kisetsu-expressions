@@ -364,7 +364,7 @@ function ProductModal({ product, whatsappLink, onClose }) {
                   className="product-modal-error"
                   role="alert"
                 >
-                  Please select a size.
+                  Please select a size category and size.
                 </p>
 
               ) : null}
