@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import './App.css'
 
 import kisetsuLogo from './assets/kisetsu-logo.png'
@@ -6,7 +8,40 @@ import magnateLogo from './assets/magnate-logo.png'
 import tshirt01 from './assets/kisetsu-tshirt1.jpg'
 import tshirt02 from './assets/kisetsu-tshirt2.jpg'
 import tshirt03 from './assets/kisetsu-tshirt3.jpg'
+import tshirt04Red from './assets/tshirt-black-red-print.jpg'
+import tshirt04White from './assets/tshirt-black-white-print.jpg'
 
+function TshirtSwapImage({ primary, altImage, name }) {
+  const [showAlt, setShowAlt] = useState(false)
+
+  function handleClick() {
+    const canHover = window.matchMedia(
+      '(hover: hover) and (pointer: fine)'
+    ).matches
+
+    if (!canHover) {
+      setShowAlt((open) => !open)
+    }
+  }
+
+  return (
+    <div
+      className={'tshirt-swap' + (showAlt ? ' is-alt' : '')}
+      onClick={handleClick}
+    >
+      <img
+        src={primary}
+        alt={name}
+        className="tshirt-swap-primary"
+      />
+      <img
+        src={altImage}
+        alt={name + ' white print'}
+        className="tshirt-swap-alt"
+      />
+    </div>
+  )
+}
 
 function App() {
 
@@ -39,6 +74,15 @@ function App() {
       name: 'Kisetsu T-Shirt 03',
       description:
         'Wear your story with a design made to stand out.',
+    },
+
+    {
+      number: '04',
+      image: tshirt04Red,
+      hoverImage: tshirt04White,
+      name: 'Kisetsu T-Shirt 04',
+      description:
+        'A black tee with a bold print — red or white, same design.',
     },
   ]
 
@@ -279,10 +323,18 @@ function App() {
 
                 <div className="tshirt-image">
 
-                  <img
-                    src={shirt.image}
-                    alt={shirt.name}
-                  />
+                  {shirt.hoverImage ? (
+                    <TshirtSwapImage
+                      primary={shirt.image}
+                      altImage={shirt.hoverImage}
+                      name={shirt.name}
+                    />
+                  ) : (
+                    <img
+                      src={shirt.image}
+                      alt={shirt.name}
+                    />
+                  )}
 
                 </div>
 
