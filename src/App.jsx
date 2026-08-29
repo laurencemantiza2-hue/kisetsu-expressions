@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import './App.css'
 import ProductModal from './ProductModal.jsx'
@@ -12,6 +12,11 @@ import tshirt03 from './assets/kisetsu-tshirt3.jpg'
 
 import tshirt04Red from './assets/tshirt-black-red-print.jpg'
 import tshirt04White from './assets/tshirt-black-white-print.jpg'
+import heroImage from './assets/hero-kisetsu.jpg'
+import featureTshirts from './assets/feature-tshirts.jpg'
+import featurePaintings from './assets/feature-paintings.jpg'
+import featureStudentArt from './assets/feature-student-art.jpg'
+import featureWorkshops from './assets/feature-workshops.jpg'
 
 
 function TshirtSwapImage({ primary, altImage, name }) {
@@ -35,11 +40,61 @@ function TshirtSwapImage({ primary, altImage, name }) {
 
 function App() {
   const [selectedProduct, setSelectedProduct] = useState(null)
+  const [activeFeature, setActiveFeature] = useState(0)
+  const [isFeaturePaused, setIsFeaturePaused] = useState(false)
 
   const whatsappLink = 'https://wa.me/971545735918'
 
   const facebookLink =
     'https://www.facebook.com/kisetsuexpressions/'
+
+  const createWhatsappLink = (message) =>
+    whatsappLink + '?text=' + encodeURIComponent(message)
+
+  const features = [
+    {
+      title: 'T-Shirts',
+      description: 'Wear art that feels personal, expressive, and made to be seen.',
+      image: featureTshirts,
+      imageAlt: 'Person wearing a colourful Kisetsu T-shirt design',
+      action: 'Shop T-Shirts',
+      href: '#tshirts',
+    },
+    {
+      title: 'Paintings',
+      description: 'Original work with colour, feeling, and a story for your space.',
+      image: featurePaintings,
+      imageAlt: 'Original Kisetsu painting displayed in a home',
+      action: 'Explore Paintings',
+      href: '#paintings',
+    },
+    {
+      title: 'Student Art',
+      description: 'A celebration of young artists, new perspectives, and proud creative moments.',
+      image: featureStudentArt,
+      imageAlt: 'Student holding a completed painting',
+      action: 'Explore Student Art',
+      href: '#student-art',
+    },
+    {
+      title: 'Workshops',
+      description: 'Bring people together through a guided, hands-on creative experience.',
+      image: featureWorkshops,
+      imageAlt: 'Students creating art together in a workshop',
+      action: 'Plan Your Creative Workshop',
+      href: '#workshops',
+    },
+  ]
+
+  useEffect(() => {
+    if (isFeaturePaused) return undefined
+
+    const timer = window.setInterval(() => {
+      setActiveFeature((current) => (current + 1) % features.length)
+    }, 6500)
+
+    return () => window.clearInterval(timer)
+  }, [features.length, isFeaturePaused])
 
 
   const tshirts = [
@@ -128,6 +183,14 @@ function App() {
             T-Shirts
           </a>
 
+          <a href="#paintings">
+            Paintings
+          </a>
+
+          <a href="#workshops">
+            Workshops
+          </a>
+
           <a href="#contact">
             Contact
           </a>
@@ -156,6 +219,7 @@ function App() {
         <section
           id="home"
           className="hero-section"
+          style={{ '--hero-image': `url(${heroImage})` }}
         >
 
           <div className="hero-content">
@@ -173,19 +237,18 @@ function App() {
 
 
             <p className="hero-description">
-              T-shirts designed to express your personality,
-              your moments, and the stories that make you
-              who you are.
+              Original T-shirts, paintings, student art, and creative
+              workshops made to celebrate the stories that make you who you are.
             </p>
 
 
             <div className="hero-buttons">
 
               <a
-                href="#tshirts"
+                href="#discover"
                 className="button button-primary"
               >
-                Explore T-Shirts
+                Explore Kisetsu
               </a>
 
 
@@ -200,6 +263,85 @@ function App() {
 
             </div>
 
+          </div>
+
+        </section>
+
+
+        {/* =========================
+            FEATURED EXPRESSIONS
+        ========================== */}
+
+        <section id="discover" className="discover-section">
+
+          <div className="discover-header">
+            <div>
+              <p className="eyebrow">CHOOSE YOUR EXPRESSION</p>
+              <h2>Made for every<br />creative moment.</h2>
+            </div>
+
+            <button
+              type="button"
+              className="carousel-pause"
+              onClick={() => setIsFeaturePaused((paused) => !paused)}
+              aria-pressed={isFeaturePaused}
+            >
+              {isFeaturePaused ? 'Play slides' : 'Pause slides'}
+            </button>
+          </div>
+
+          <div className="feature-carousel" aria-label="Kisetsu Expressions offerings">
+            <div
+              className="feature-track"
+              style={{ transform: `translateX(-${activeFeature * 100}%)` }}
+            >
+              {features.map((feature) => (
+                <article className="feature-slide" key={feature.title}>
+                  <img src={feature.image} alt={feature.imageAlt} />
+                  <div className="feature-slide-content">
+                    <p className="eyebrow">KISETSU {feature.title.toUpperCase()}</p>
+                    <h3>{feature.title}</h3>
+                    <p>{feature.description}</p>
+                    <a href={feature.href} className="button button-primary">
+                      {feature.action}
+                    </a>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="carousel-controls">
+              <button
+                type="button"
+                className="carousel-arrow"
+                onClick={() => setActiveFeature((current) => (current - 1 + features.length) % features.length)}
+                aria-label="Show previous feature"
+              >
+                ←
+              </button>
+
+              <div className="carousel-dots">
+                {features.map((feature, index) => (
+                  <button
+                    type="button"
+                    key={feature.title}
+                    className={index === activeFeature ? 'is-active' : ''}
+                    onClick={() => setActiveFeature(index)}
+                    aria-label={`Show ${feature.title}`}
+                    aria-current={index === activeFeature ? 'true' : undefined}
+                  />
+                ))}
+              </div>
+
+              <button
+                type="button"
+                className="carousel-arrow"
+                onClick={() => setActiveFeature((current) => (current + 1) % features.length)}
+                aria-label="Show next feature"
+              >
+                →
+              </button>
+            </div>
           </div>
 
         </section>
@@ -234,6 +376,90 @@ function App() {
 
           </div>
 
+        </section>
+
+
+        {/* =========================
+            PAINTINGS
+        ========================== */}
+
+        <section id="paintings" className="expression-section paintings-section">
+          <div className="expression-image">
+            <img src={featurePaintings} alt="Original Kisetsu painting displayed in a home" />
+          </div>
+
+          <div className="expression-content">
+            <p className="eyebrow">ORIGINAL PAINTINGS</p>
+            <h2>Art that gives<br />a room a story.</h2>
+            <p>
+              Discover original paintings created to bring warmth, colour,
+              and a personal sense of expression into your space.
+            </p>
+            <a
+              href={createWhatsappLink("Hello Kisetsu Expressions, I'd like to enquire about your paintings.")}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="button button-primary"
+            >
+              Enquire About a Painting
+            </a>
+          </div>
+        </section>
+
+
+        {/* =========================
+            STUDENT ART
+        ========================== */}
+
+        <section id="student-art" className="expression-section student-art-section">
+          <div className="expression-content">
+            <p className="eyebrow">STUDENT ART</p>
+            <h2>Big imagination.<br />Proudly shared.</h2>
+            <p>
+              Student art is where confidence grows and new voices emerge.
+              Explore the creativity, care, and individuality behind each piece.
+            </p>
+            <a
+              href={createWhatsappLink("Hello Kisetsu Expressions, I'd like to ask about student art.")}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="button button-secondary"
+            >
+              Ask About Student Art
+            </a>
+          </div>
+
+          <div className="expression-image">
+            <img src={featureStudentArt} alt="Student holding a completed painting" />
+          </div>
+        </section>
+
+
+        {/* =========================
+            WORKSHOPS
+        ========================== */}
+
+        <section id="workshops" className="workshops-section">
+          <div className="workshops-image">
+            <img src={featureWorkshops} alt="Students creating art together in a workshop" />
+          </div>
+
+          <div className="workshops-content">
+            <p className="eyebrow">CREATIVE WORKSHOPS</p>
+            <h2>Make something<br />meaningful together.</h2>
+            <p>
+              Plan a relaxed, guided art experience for your group. Tell us your
+              preferred date, group size, and creative idea, and we will help shape the session.
+            </p>
+            <a
+              href={createWhatsappLink('Hello Kisetsu Expressions, I would like to plan a creative workshop. Preferred date: __ / Group size: __ / Idea: __')}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="button button-light"
+            >
+              Plan Your Creative Workshop
+            </a>
+          </div>
         </section>
 
 
