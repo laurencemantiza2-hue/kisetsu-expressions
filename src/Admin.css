@@ -1,0 +1,25 @@
+.admin-shell { min-height: 100vh; padding: 32px 18px 64px; background: #f5f1e8; color: #172d3d; font-family: Arial, Helvetica, sans-serif; }
+.admin-card { width: min(760px, 100%); margin: 0 auto; padding: clamp(24px, 5vw, 52px); background: #fff; box-shadow: 0 18px 50px rgba(18, 59, 93, .12); }
+.admin-login { margin-top: 11vh; max-width: 480px; }
+.admin-kicker { margin: 0 0 10px; color: #b22222; font-size: 11px; font-weight: 800; letter-spacing: .14em; }
+.admin-card h1 { margin: 0; color: #123b5d; font-size: clamp(36px, 6vw, 56px); line-height: .95; }
+.admin-card > p { color: #56616a; line-height: 1.6; }
+.admin-card label { display: grid; gap: 7px; margin-top: 18px; color: #123b5d; font-size: 13px; font-weight: 800; }
+.admin-card input, .admin-card textarea, .admin-card select { box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #cdd3d5; color: #172d3d; font: inherit; font-weight: 400; }
+.admin-card input[type="color"] { height: 46px; padding: 4px; }
+.admin-card input[type="range"] { padding: 0; }
+.admin-card button { margin-top: 22px; border: 0; padding: 14px 18px; background: #123b5d; color: #fff; cursor: pointer; font: inherit; font-weight: 800; }
+.admin-section { margin-top: 46px; padding-top: 28px; border-top: 1px solid #e5e7e8; }
+.admin-section h2 { margin: 0; color: #123b5d; font-size: 24px; }
+.admin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; }
+.image-control { display: grid; grid-template-columns: 1fr 130px; gap: 14px; align-items: end; margin-top: 18px; }
+.image-control label { margin-top: 0; }
+.image-control img { width: 130px; height: 82px; object-fit: cover; background: #eee; }
+.image-control .upload-label { grid-column: 1 / -1; }
+.image-control input[type="file"] { padding: 8px 0; border: 0; }
+.admin-save { background: #b22222 !important; }
+.admin-status { margin: 18px 0 0; color: #b22222; line-height: 1.5; }
+.admin-header { width: min(760px, 100%); display: flex; justify-content: space-between; margin: 0 auto 18px; }
+.admin-header a { color: #123b5d; font-weight: 800; text-decoration: none; }
+.admin-header .admin-logout { margin: 0; padding: 0; background: transparent; color: #123b5d; }
+@media (max-width: 560px) { .admin-grid { grid-template-columns: 1fr; } }

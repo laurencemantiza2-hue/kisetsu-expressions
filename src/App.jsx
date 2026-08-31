@@ -12,11 +12,8 @@ import tshirt03 from './assets/kisetsu-tshirt3.jpg'
 
 import tshirt04Red from './assets/tshirt-black-red-print.jpg'
 import tshirt04White from './assets/tshirt-black-white-print.jpg'
-import heroImage from './assets/hero-kisetsu.jpg'
-import featureTshirts from './assets/feature-tshirts.jpg'
-import featurePaintings from './assets/feature-paintings.jpg'
-import featureStudentArt from './assets/feature-student-art.jpg'
-import featureWorkshops from './assets/feature-workshops.jpg'
+import { hasSupabaseConfig, supabase } from './supabase.js'
+import { defaultSiteContent, mergeSiteContent } from './siteContent.js'
 
 
 function TshirtSwapImage({ primary, altImage, name }) {
@@ -42,6 +39,7 @@ function App() {
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [activeFeature, setActiveFeature] = useState(0)
   const [isFeaturePaused, setIsFeaturePaused] = useState(false)
+  const [siteContent, setSiteContent] = useState(defaultSiteContent)
 
   const whatsappLink = 'https://wa.me/971545735918'
 
@@ -51,11 +49,30 @@ function App() {
   const createWhatsappLink = (message) =>
     whatsappLink + '?text=' + encodeURIComponent(message)
 
+  useEffect(() => {
+    if (!hasSupabaseConfig) return undefined
+
+    async function loadSiteSettings() {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('content')
+        .eq('id', 'default')
+        .maybeSingle()
+
+      if (!error && data?.content) setSiteContent(mergeSiteContent(data.content))
+    }
+
+    loadSiteSettings()
+    return undefined
+  }, [])
+
+  const heroImage = siteContent.hero.image
+
   const features = [
     {
       title: 'T-Shirts',
       description: 'Wear art that feels personal, expressive, and made to be seen.',
-      image: featureTshirts,
+      image: siteContent.features[0].image,
       imageAlt: 'Person wearing a colourful Kisetsu T-shirt design',
       action: 'Shop T-Shirts',
       href: '#tshirts',
@@ -63,7 +80,7 @@ function App() {
     {
       title: 'Paintings',
       description: 'Original work with colour, feeling, and a story for your space.',
-      image: featurePaintings,
+      image: siteContent.features[1].image,
       imageAlt: 'Original Kisetsu painting displayed in a home',
       action: 'Explore Paintings',
       href: '#paintings',
@@ -71,7 +88,7 @@ function App() {
     {
       title: 'Student Art',
       description: 'A celebration of young artists, new perspectives, and proud creative moments.',
-      image: featureStudentArt,
+      image: siteContent.features[2].image,
       imageAlt: 'Student holding a completed painting',
       action: 'Explore Student Art',
       href: '#student-art',
@@ -79,7 +96,7 @@ function App() {
     {
       title: 'Workshops',
       description: 'Bring people together through a guided, hands-on creative experience.',
-      image: featureWorkshops,
+      image: siteContent.features[3].image,
       imageAlt: 'Students creating art together in a workshop',
       action: 'Plan Your Creative Workshop',
       href: '#workshops',
@@ -150,7 +167,15 @@ function App() {
 
 
   return (
-    <div className="website">
+    <div
+      className="website"
+      style={{
+        '--site-primary': siteContent.theme.primaryColor,
+        '--site-accent': siteContent.theme.accentColor,
+        '--hero-heading-size': `${siteContent.theme.headingSize}px`,
+        '--site-font': siteContent.theme.fontFamily,
+      }}
+    >
 
       {/* =========================
           NAVIGATION
@@ -225,20 +250,22 @@ function App() {
           <div className="hero-content">
 
             <p className="eyebrow">
-              KISETSU EXPRESSIONS
+              {siteContent.hero.eyebrow}
             </p>
 
 
             <h1>
-              Your Story,
-              <br />
-              Beautifully Gifted.
+              {siteContent.hero.title.split('\n').map((line, index) => (
+                <span key={`${line}-${index}`}>
+                  {line}
+                  {index < siteContent.hero.title.split('\n').length - 1 ? <br /> : null}
+                </span>
+              ))}
             </h1>
 
 
             <p className="hero-description">
-              Original T-shirts, paintings, student art, and creative
-              workshops made to celebrate the stories that make you who you are.
+              {siteContent.hero.description}
             </p>
 
 
@@ -385,7 +412,7 @@ function App() {
 
         <section id="paintings" className="expression-section paintings-section">
           <div className="expression-image">
-            <img src={featurePaintings} alt="Original Kisetsu painting displayed in a home" />
+            <img src={siteContent.features[1].image} alt="Original Kisetsu painting displayed in a home" />
           </div>
 
           <div className="expression-content">
@@ -430,7 +457,7 @@ function App() {
           </div>
 
           <div className="expression-image">
-            <img src={featureStudentArt} alt="Student holding a completed painting" />
+            <img src={siteContent.features[2].image} alt="Student holding a completed painting" />
           </div>
         </section>
 
@@ -441,7 +468,7 @@ function App() {
 
         <section id="workshops" className="workshops-section">
           <div className="workshops-image">
-            <img src={featureWorkshops} alt="Students creating art together in a workshop" />
+            <img src={siteContent.features[3].image} alt="Students creating art together in a workshop" />
           </div>
 
           <div className="workshops-content">

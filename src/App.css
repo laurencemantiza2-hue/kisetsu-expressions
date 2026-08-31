@@ -14,7 +14,7 @@ body {
   margin: 0;
   background: #f5f1e8;
   color: #172d3d;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--site-font, Arial, Helvetica, sans-serif);
 }
 
 a {
@@ -141,13 +141,13 @@ a {
   letter-spacing: 4px;
   text-transform: uppercase;
 
-  color: #b22222;
+  color: var(--site-accent, #b22222);
 }
 
 .hero-section h1 {
   margin: 0;
 
-  font-size: clamp(65px, 10vw, 150px);
+  font-size: clamp(65px, 10vw, var(--hero-heading-size, 150px));
   line-height: 0.86;
   letter-spacing: -7px;
   font-weight: 800;
@@ -1092,7 +1092,7 @@ a {
   font-size: clamp(50px, 7vw, 96px);
   line-height: 0.9;
   letter-spacing: -5px;
-  color: #123b5d;
+  color: var(--site-primary, #123b5d);
 }
 
 .carousel-pause,
