@@ -1,0 +1,650 @@
+diff --git a/ADMIN_SETUP.md b/ADMIN_SETUP.md
+index 98ed05b..3895e3d 100644
+--- a/ADMIN_SETUP.md
++++ b/ADMIN_SETUP.md
+@@ -1,10 +1,16 @@
+ # Admin editor setup
+ 
+-The admin page is available at `/admin`. It lets an approved editor change the homepage hero text and image, featured images, approved colors, font choice, and heading size.
++The admin page is available at `/admin`. It lets an approved editor change:
++
++- the homepage hero text and image
++- the four featured category images
++- site-wide colors, font choice, and heading size
++- **products**: add a new product, edit or delete an existing one, upload/remove its main image, add/delete print-color image variants, and set the color and size of that product's Name, Details, and Amount text individually
++- every save asks **"Save these changes to the live website? Yes / No"** before it goes live
+ 
+ ## One-time Supabase setup
+ 
+-1. In Supabase, open **SQL Editor** and run the complete contents of `supabase/setup.sql`.
++1. In Supabase, open **SQL Editor** and run the complete contents of `supabase/setup.sql`. (If you already ran this once before, it's safe to run again — it will just add the new "delete site images" permission needed for the image/product delete buttons.)
+ 2. In **Authentication > URL Configuration**, set the Site URL to the final Vercel domain. Add these Redirect URLs:
+    - `http://localhost:5173/admin`
+    - `https://YOUR-VERCEL-DOMAIN/admin`
+diff --git a/PROJECT_WORKFLOW.md b/PROJECT_WORKFLOW.md
+index 4c4aa28..069eb07 100644
+--- a/PROJECT_WORKFLOW.md
++++ b/PROJECT_WORKFLOW.md
+@@ -61,3 +61,4 @@ Add the **paintings catalogue** next. It is the highest-value Phase 2 addition:
+ | 2026-08-29 | Added this roadmap, workflow, and decision record. |
+ | 2026-08-29 | Completed the Phase 2.1 T-shirt pricing update: adult AED 60, kids AED 55; size category and size are required for orders. |
+ | 2026-08-30 | Added the hero artwork, automatic feature carousel, and dedicated paintings, student-art, and workshop sections. |
++| 2026-09-02 | Made the T-shirt catalogue fully admin-editable: add/delete products, edit name/details/images, add/delete print-color variants, and set per-product Name/Details/Amount color and size. Added a Save Yes/No confirmation and real image deletion. This delivers a working slice of Phases 3–4 ahead of the roadmap order — worth a look before treating those phases as still "Planned." |
+diff --git a/src/Admin.css b/src/Admin.css
+index cc115d6..889e471 100644
+--- a/src/Admin.css
++++ b/src/Admin.css
+@@ -22,4 +22,29 @@
+ .admin-header { width: min(760px, 100%); display: flex; justify-content: space-between; margin: 0 auto 18px; }
+ .admin-header a { color: #123b5d; font-weight: 800; text-decoration: none; }
+ .admin-header .admin-logout { margin: 0; padding: 0; background: transparent; color: #123b5d; }
+-@media (max-width: 560px) { .admin-grid { grid-template-columns: 1fr; } }
++.admin-subheading { margin: 24px 0 4px; color: #123b5d; font-size: 13px; font-weight: 800; letter-spacing: .04em; }
++.product-editor { margin-top: 26px; padding: 20px; border: 1px solid #e5e7e8; background: #fbfaf7; }
++.product-editor + .product-editor { margin-top: 18px; }
++.product-editor-head { display: flex; align-items: center; justify-content: space-between; }
++.product-editor-number { color: #b22222; font-size: 12px; font-weight: 800; letter-spacing: .1em; }
++.product-remove, .admin-add-product, .product-add-print { margin: 0; padding: 8px 14px; background: transparent; border: 1px solid #b22222; color: #b22222; font-size: 12px; font-weight: 800; }
++.admin-add-product { margin-top: 18px; padding: 12px 18px; }
++.product-add-print { margin-top: 12px; border-color: #123b5d; color: #123b5d; }
++.product-print-options { margin-top: 10px; padding-top: 14px; border-top: 1px dashed #dfe2e3; }
++.print-option-row { margin-top: 14px; padding: 12px; background: #fff; border: 1px solid #e5e7e8; }
++.print-option-row .image-control { margin-top: 12px; }
++.image-control-empty { width: 130px; height: 82px; display: flex; align-items: center; justify-content: center; background: #eee; color: #8a9096; font-size: 11px; text-align: center; }
++.image-control-delete { grid-column: 1 / -1; margin-top: 0; padding: 8px 14px; background: transparent; border: 1px solid #cdd3d5; color: #56616a; font-size: 12px; font-weight: 800; justify-self: start; }
++.product-style { margin-top: 10px; padding-top: 14px; border-top: 1px dashed #dfe2e3; }
++.style-row { display: grid; grid-template-columns: 90px 46px 1fr 46px; gap: 12px; align-items: center; margin-top: 12px; }
++.style-row-label { color: #172d3d; font-size: 13px; font-weight: 800; }
++.style-row input[type="color"] { height: 38px; padding: 3px; }
++.style-row input[type="range"] { padding: 0; }
++.style-row-size { color: #56616a; font-size: 12px; text-align: right; }
++.admin-confirm { margin-top: 22px; padding: 18px; background: #fff7ec; border: 1px solid #f1a916; }
++.admin-confirm p { margin: 0 0 12px; color: #123b5d; font-weight: 800; }
++.admin-confirm-buttons { display: flex; gap: 12px; }
++.admin-confirm-yes, .admin-confirm-no { margin: 0; padding: 12px 18px; font-weight: 800; }
++.admin-confirm-yes { background: #123b5d; color: #fff; }
++.admin-confirm-no { background: transparent; border: 1px solid #123b5d !important; color: #123b5d; }
++@media (max-width: 560px) { .admin-grid { grid-template-columns: 1fr; } .style-row { grid-template-columns: 70px 40px 1fr 40px; } }
+diff --git a/src/Admin.jsx b/src/Admin.jsx
+index ea94faf..fb10d1c 100644
+--- a/src/Admin.jsx
++++ b/src/Admin.jsx
+@@ -1,18 +1,33 @@
+ import { useEffect, useState } from 'react'
+ import { hasSupabaseConfig, supabase } from './supabase.js'
+-import { defaultSiteContent, mergeSiteContent } from './siteContent.js'
++import { defaultSiteContent, defaultProductStyle, mergeSiteContent } from './siteContent.js'
+ import './Admin.css'
+ 
+ function cloneContent(content) {
+   return JSON.parse(JSON.stringify(content))
+ }
+ 
++function nextProductNumber(products) {
++  const highest = products.reduce((max, product) => {
++    const parsed = parseInt(product.number, 10)
++    return Number.isFinite(parsed) && parsed > max ? parsed : max
++  }, 0)
++  return String(highest + 1).padStart(2, '0')
++}
++
++function storagePathFromUrl(url) {
++  const marker = '/site-images/'
++  const index = typeof url === 'string' ? url.indexOf(marker) : -1
++  return index >= 0 ? url.slice(index + marker.length) : null
++}
++
+ export default function Admin() {
+   const [email, setEmail] = useState('')
+   const [session, setSession] = useState(null)
+   const [content, setContent] = useState(() => cloneContent(defaultSiteContent))
+   const [status, setStatus] = useState('')
+   const [isAllowed, setIsAllowed] = useState(false)
++  const [confirmingSave, setConfirmingSave] = useState(false)
+ 
+   useEffect(() => {
+     if (!supabase) return undefined
+@@ -43,6 +58,85 @@ export default function Admin() {
+     ...current, theme: { ...current.theme, [field]: value },
+   }))
+ 
++  const updateProduct = (id, field, value) => setContent((current) => ({
++    ...current,
++    products: current.products.map((product) => product.id === id ? { ...product, [field]: value } : product),
++  }))
++
++  const updateProductStyle = (id, group, key, value) => setContent((current) => ({
++    ...current,
++    products: current.products.map((product) => product.id === id
++      ? { ...product, style: { ...product.style, [group]: { ...product.style[group], [key]: value } } }
++      : product),
++  }))
++
++  const addProduct = () => setContent((current) => ({
++    ...current,
++    products: [
++      ...current.products,
++      {
++        id: crypto.randomUUID(),
++        number: nextProductNumber(current.products),
++        name: 'New product',
++        description: 'Add a short description.',
++        image: '',
++        hoverImage: '',
++        printOptions: [],
++        style: cloneContent(defaultProductStyle),
++      },
++    ],
++  }))
++
++  const addPrintOption = (id) => setContent((current) => ({
++    ...current,
++    products: current.products.map((product) => product.id === id
++      ? { ...product, printOptions: [...(product.printOptions || []), { label: 'New color', image: '' }] }
++      : product),
++  }))
++
++  const updatePrintOption = (id, index, field, value) => setContent((current) => ({
++    ...current,
++    products: current.products.map((product) => product.id === id
++      ? { ...product, printOptions: product.printOptions.map((option, i) => i === index ? { ...option, [field]: value } : option) }
++      : product),
++  }))
++
++  async function deleteStoredImage(url) {
++    const path = storagePathFromUrl(url)
++    if (!path) return
++    const { error } = await supabase.storage.from('site-images').remove([path])
++    if (error) setStatus(error.message)
++  }
++
++  async function deletePrintOption(id, index) {
++    const product = content.products.find((item) => item.id === id)
++    const option = product?.printOptions?.[index]
++    if (option?.image) await deleteStoredImage(option.image)
++    setContent((current) => ({
++      ...current,
++      products: current.products.map((item) => item.id === id
++        ? { ...item, printOptions: item.printOptions.filter((_, i) => i !== index) }
++        : item),
++    }))
++  }
++
++  async function removeProduct(id) {
++    const product = content.products.find((item) => item.id === id)
++    if (product) {
++      const urls = [product.image, product.hoverImage, ...(product.printOptions || []).map((option) => option.image)].filter(Boolean)
++      await Promise.all(urls.map(deleteStoredImage))
++    }
++    setContent((current) => ({ ...current, products: current.products.filter((item) => item.id !== id) }))
++    setStatus('Product removed. Remember to save your changes.')
++  }
++
++  async function clearProductImage(id, field) {
++    const product = content.products.find((item) => item.id === id)
++    if (product?.[field]) await deleteStoredImage(product[field])
++    updateProduct(id, field, '')
++    setStatus('Image removed. Remember to save your changes.')
++  }
++
+   async function signIn(event) {
+     event.preventDefault()
+     setStatus('')
+@@ -53,21 +147,56 @@ export default function Admin() {
+     setStatus(error ? error.message : 'Check your email for the secure sign-in link.')
+   }
+ 
++  async function uploadToStorage(file, prefix) {
++    const extension = file.name.split('.').pop() || 'jpg'
++    const path = `${prefix}-${Date.now()}.${extension}`
++    const { error } = await supabase.storage.from('site-images').upload(path, file, { upsert: false })
++    if (error) throw new Error(error.message)
++    const { data } = supabase.storage.from('site-images').getPublicUrl(path)
++    return data.publicUrl
++  }
++
+   async function uploadImage(event, target) {
+     const file = event.target.files?.[0]
+     if (!file) return
+     setStatus('Uploading image…')
+-    const extension = file.name.split('.').pop() || 'jpg'
+-    const path = `${target}-${Date.now()}.${extension}`
+-    const { error } = await supabase.storage.from('site-images').upload(path, file, { upsert: false })
+-    if (error) return setStatus(error.message)
+-    const { data } = supabase.storage.from('site-images').getPublicUrl(path)
+-    if (target === 'hero') updateHero('image', data.publicUrl)
+-    else setContent((current) => ({
+-      ...current,
+-      features: current.features.map((feature) => feature.key === target ? { ...feature, image: data.publicUrl } : feature),
+-    }))
+-    setStatus('Image uploaded. Remember to save your changes.')
++    try {
++      const url = await uploadToStorage(file, target)
++      if (target === 'hero') updateHero('image', url)
++      else setContent((current) => ({
++        ...current,
++        features: current.features.map((feature) => feature.key === target ? { ...feature, image: url } : feature),
++      }))
++      setStatus('Image uploaded. Remember to save your changes.')
++    } catch (error) {
++      setStatus(error.message)
++    }
++  }
++
++  async function uploadProductImage(event, id, field) {
++    const file = event.target.files?.[0]
++    if (!file) return
++    setStatus('Uploading image…')
++    try {
++      const url = await uploadToStorage(file, `product-${id}-${field}`)
++      updateProduct(id, field, url)
++      setStatus('Image uploaded. Remember to save your changes.')
++    } catch (error) {
++      setStatus(error.message)
++    }
++  }
++
++  async function uploadPrintOptionImage(event, id, index) {
++    const file = event.target.files?.[0]
++    if (!file) return
++    setStatus('Uploading image…')
++    try {
++      const url = await uploadToStorage(file, `product-${id}-print-${index}`)
++      updatePrintOption(id, index, 'image', url)
++      setStatus('Image uploaded. Remember to save your changes.')
++    } catch (error) {
++      setStatus(error.message)
++    }
+   }
+ 
+   async function save() {
+@@ -118,18 +247,105 @@ export default function Admin() {
+           {content.features.map((feature) => <ImageControl key={feature.key} label={feature.title} src={feature.image} onChange={(event) => setContent((current) => ({ ...current, features: current.features.map((item) => item.key === feature.key ? { ...item, image: event.target.value } : item) }))} onUpload={(event) => uploadImage(event, feature.key)} />)}
+         </div>
+ 
++        <div className="admin-section">
++          <h2>Products</h2>
++          <p>Add new t-shirts, edit the ones you already have, and set how each product's name, details, and price look on the site.</p>
++          {content.products.map((product) => (
++            <ProductEditor
++              key={product.id}
++              product={product}
++              onChange={(field, value) => updateProduct(product.id, field, value)}
++              onStyleChange={(group, key, value) => updateProductStyle(product.id, group, key, value)}
++              onUploadImage={(event, field) => uploadProductImage(event, product.id, field)}
++              onClearImage={(field) => clearProductImage(product.id, field)}
++              onAddPrintOption={() => addPrintOption(product.id)}
++              onUpdatePrintOption={(index, field, value) => updatePrintOption(product.id, index, field, value)}
++              onUploadPrintOptionImage={(event, index) => uploadPrintOptionImage(event, product.id, index)}
++              onDeletePrintOption={(index) => deletePrintOption(product.id, index)}
++              onRemove={() => removeProduct(product.id)}
++            />
++          ))}
++          <button type="button" className="admin-add-product" onClick={addProduct}>+ Add a new product</button>
++        </div>
++
+         <div className="admin-section"><h2>Website style</h2>
+           <div className="admin-grid"><label>Main color<input type="color" value={content.theme.primaryColor} onChange={(event) => updateTheme('primaryColor', event.target.value)} /></label><label>Accent color<input type="color" value={content.theme.accentColor} onChange={(event) => updateTheme('accentColor', event.target.value)} /></label><label>Heading size<input type="range" min="70" max="130" value={content.theme.headingSize} onChange={(event) => updateTheme('headingSize', Number(event.target.value))} /><span>{content.theme.headingSize}px</span></label><label>Font<select value={content.theme.fontFamily} onChange={(event) => updateTheme('fontFamily', event.target.value)}><option value="Arial, Helvetica, sans-serif">Clean (Arial)</option><option value="Georgia, serif">Classic (Georgia)</option><option value="Trebuchet MS, sans-serif">Friendly (Trebuchet)</option></select></label></div>
+         </div>
+-        <button className="admin-save" type="button" onClick={save}>Save and update website</button>
++
++        {confirmingSave ? (
++          <div className="admin-confirm">
++            <p>Save these changes to the live website?</p>
++            <div className="admin-confirm-buttons">
++              <button type="button" className="admin-confirm-yes" onClick={async () => { setConfirmingSave(false); await save() }}>Yes, save</button>
++              <button type="button" className="admin-confirm-no" onClick={() => setConfirmingSave(false)}>No, keep editing</button>
++            </div>
++          </div>
++        ) : (
++          <button className="admin-save" type="button" onClick={() => setConfirmingSave(true)}>Save and update website</button>
++        )}
+         {status && <p className="admin-status">{status}</p>}
+       </section>
+     </main>
+   )
+ }
+ 
+-function ImageControl({ label, src, onChange, onUpload }) {
+-  return <div className="image-control"><label>{label}<input value={src} onChange={onChange} placeholder="Paste image link" /></label><img src={src} alt="Current selection" /><label className="upload-label">Or upload a new image<input type="file" accept="image/*" onChange={onUpload} /></label></div>
++function ProductEditor({ product, onChange, onStyleChange, onUploadImage, onClearImage, onAddPrintOption, onUpdatePrintOption, onUploadPrintOptionImage, onDeletePrintOption, onRemove }) {
++  return (
++    <div className="product-editor">
++      <div className="product-editor-head">
++        <span className="product-editor-number">Product {product.number}</span>
++        <button type="button" className="product-remove" onClick={onRemove}>Delete this product</button>
++      </div>
++
++      <label>Name<input value={product.name} onChange={(event) => onChange('name', event.target.value)} /></label>
++      <label>Details<textarea value={product.description} onChange={(event) => onChange('description', event.target.value)} rows="3" /></label>
++
++      <div className="admin-grid">
++        <ImageControl label="Main image" src={product.image} onChange={(event) => onChange('image', event.target.value)} onUpload={(event) => onUploadImage(event, 'image')} onDelete={product.image ? () => onClearImage('image') : null} />
++        <ImageControl label="Hover image (optional)" src={product.hoverImage} onChange={(event) => onChange('hoverImage', event.target.value)} onUpload={(event) => onUploadImage(event, 'hoverImage')} onDelete={product.hoverImage ? () => onClearImage('hoverImage') : null} />
++      </div>
++
++      <div className="product-print-options">
++        <p className="admin-subheading">Print color options</p>
++        {(product.printOptions || []).map((option, index) => (
++          <div className="print-option-row" key={index}>
++            <label>Color name<input value={option.label} onChange={(event) => onUpdatePrintOption(index, 'label', event.target.value)} /></label>
++            <ImageControl label="Image" src={option.image} onChange={(event) => onUpdatePrintOption(index, 'image', event.target.value)} onUpload={(event) => onUploadPrintOptionImage(event, index)} onDelete={() => onDeletePrintOption(index)} />
++          </div>
++        ))}
++        <button type="button" className="product-add-print" onClick={onAddPrintOption}>+ Add a print color</button>
++      </div>
++
++      <div className="product-style">
++        <p className="admin-subheading">Text style</p>
++        <StyleRow label="Name" style={product.style.name} onChange={(key, value) => onStyleChange('name', key, value)} />
++        <StyleRow label="Details" style={product.style.details} onChange={(key, value) => onStyleChange('details', key, value)} />
++        <StyleRow label="Amount" style={product.style.amount} onChange={(key, value) => onStyleChange('amount', key, value)} />
++      </div>
++    </div>
++  )
++}
++
++function StyleRow({ label, style, onChange }) {
++  return (
++    <div className="style-row">
++      <span className="style-row-label">{label}</span>
++      <input type="color" value={style.color} onChange={(event) => onChange('color', event.target.value)} />
++      <input type="range" min="10" max="48" value={style.size} onChange={(event) => onChange('size', Number(event.target.value))} />
++      <span className="style-row-size">{style.size}px</span>
++    </div>
++  )
++}
++
++function ImageControl({ label, src, onChange, onUpload, onDelete }) {
++  return (
++    <div className="image-control">
++      <label>{label}<input value={src} onChange={onChange} placeholder="Paste image link" /></label>
++      {src ? <img src={src} alt="Current selection" /> : <div className="image-control-empty">No image yet</div>}
++      <label className="upload-label">Or upload a new image<input type="file" accept="image/*" onChange={onUpload} /></label>
++      {onDelete ? <button type="button" className="image-control-delete" onClick={onDelete}>Remove image</button> : null}
++    </div>
++  )
+ }
+ 
+ function SetupNotice() {
+diff --git a/src/App.css b/src/App.css
+index a74407c..f34c58e 100644
+--- a/src/App.css
++++ b/src/App.css
+@@ -498,6 +498,12 @@ a {
+   color: rgba(255, 255, 255, 0.68);
+ }
+ 
++.tshirt-amount {
++  margin-top: 12px !important;
++  font-weight: 800;
++  letter-spacing: 0.3px;
++}
++
+ .tshirt-info a,
+ .tshirt-order-trigger {
+   display: inline-block;
+diff --git a/src/App.jsx b/src/App.jsx
+index be96ec1..4a57473 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -6,12 +6,6 @@ import ProductModal from './ProductModal.jsx'
+ import kisetsuLogo from './assets/kisetsu-logo.png'
+ import magnateLogo from './assets/magnate-logo.png'
+ 
+-import tshirt01 from './assets/kisetsu-tshirt1.jpg'
+-import tshirt02 from './assets/kisetsu-tshirt2.jpg'
+-import tshirt03 from './assets/kisetsu-tshirt3.jpg'
+-
+-import tshirt04Red from './assets/tshirt-black-red-print.jpg'
+-import tshirt04White from './assets/tshirt-black-white-print.jpg'
+ import { hasSupabaseConfig, supabase } from './supabase.js'
+ import { defaultSiteContent, mergeSiteContent } from './siteContent.js'
+ 
+@@ -114,51 +108,7 @@ function App() {
+   }, [features.length, isFeaturePaused])
+ 
+ 
+-  const tshirts = [
+-    {
+-      number: '01',
+-      image: tshirt01,
+-      name: 'Kisetsu T-Shirt 01',
+-      description:
+-        'A creative expression designed for everyday wear.',
+-    },
+-
+-    {
+-      number: '02',
+-      image: tshirt02,
+-      name: 'Kisetsu T-Shirt 02',
+-      description:
+-        'A unique design created to express your personality.',
+-    },
+-
+-    {
+-      number: '03',
+-      image: tshirt03,
+-      name: 'Kisetsu T-Shirt 03',
+-      description:
+-        'Wear your story with a design made to stand out.',
+-    },
+-
+-    {
+-      number: '04',
+-      image: tshirt04Red,
+-      hoverImage: tshirt04White,
+-      name: 'Kisetsu T-Shirt 04',
+-      description:
+-        'A black tee with a bold print — red or white, same design.',
+-
+-      printOptions: [
+-        {
+-          label: 'Red',
+-          image: tshirt04Red,
+-        },
+-        {
+-          label: 'White',
+-          image: tshirt04White,
+-        },
+-      ],
+-    },
+-  ]
++  const tshirts = siteContent.products
+ 
+ 
+   function openProductModal(shirt) {
+@@ -578,7 +528,7 @@ function App() {
+ 
+               <article
+                 className="tshirt-card tshirt-card-interactive"
+-                key={shirt.number}
++                key={shirt.id}
+               >
+ 
+                 <div
+@@ -615,15 +565,36 @@ function App() {
+                     </span>
+ 
+ 
+-                    <h3>
++                    <h3
++                      style={{
++                        color: shirt.style.name.color,
++                        fontSize: `${shirt.style.name.size}px`,
++                      }}
++                    >
+                       {shirt.name}
+                     </h3>
+ 
+ 
+-                    <p>
++                    <p
++                      style={{
++                        color: shirt.style.details.color,
++                        fontSize: `${shirt.style.details.size}px`,
++                      }}
++                    >
+                       {shirt.description}
+                     </p>
+ 
++
++                    <p
++                      className="tshirt-amount"
++                      style={{
++                        color: shirt.style.amount.color,
++                        fontSize: `${shirt.style.amount.size}px`,
++                      }}
++                    >
++                      From AED 55
++                    </p>
++
+                   </div>
+ 
+ 
+diff --git a/src/ProductModal.jsx b/src/ProductModal.jsx
+index 483625c..632e6c6 100644
+--- a/src/ProductModal.jsx
++++ b/src/ProductModal.jsx
+@@ -304,9 +304,9 @@ function ProductModal({ product, whatsappLink, onClose }) {
+             <p
+               style={{
+                 margin: 0,
+-                fontSize: '24px',
++                fontSize: `${product.style.amount.size + 4}px`,
+                 fontWeight: 800,
+-                color: '#123b5d',
++                color: product.style.amount.color,
+               }}
+             >
+               {price
+diff --git a/src/siteContent.js b/src/siteContent.js
+index a4a42c4..1cd1506 100644
+--- a/src/siteContent.js
++++ b/src/siteContent.js
+@@ -4,6 +4,67 @@ import featurePaintings from './assets/feature-paintings.jpg'
+ import featureStudentArt from './assets/feature-student-art.jpg'
+ import featureWorkshops from './assets/feature-workshops.jpg'
+ 
++import tshirt01 from './assets/kisetsu-tshirt1.jpg'
++import tshirt02 from './assets/kisetsu-tshirt2.jpg'
++import tshirt03 from './assets/kisetsu-tshirt3.jpg'
++import tshirt04Red from './assets/tshirt-black-red-print.jpg'
++import tshirt04White from './assets/tshirt-black-white-print.jpg'
++
++// Default look for a product's Name, Details, and Amount text.
++// Chosen to match how the site already looks today, so turning on
++// the editor doesn't change anything until someone actually edits it.
++export const defaultProductStyle = {
++  name: { color: '#ffffff', size: 28 },
++  details: { color: '#c9cdd0', size: 15 },
++  amount: { color: '#b22222', size: 20 },
++}
++
++export const defaultProducts = [
++  {
++    id: 't-01',
++    number: '01',
++    name: 'Kisetsu T-Shirt 01',
++    description: 'A creative expression designed for everyday wear.',
++    image: tshirt01,
++    hoverImage: '',
++    printOptions: [],
++    style: defaultProductStyle,
++  },
++  {
++    id: 't-02',
++    number: '02',
++    name: 'Kisetsu T-Shirt 02',
++    description: 'A unique design created to express your personality.',
++    image: tshirt02,
++    hoverImage: '',
++    printOptions: [],
++    style: defaultProductStyle,
++  },
++  {
++    id: 't-03',
++    number: '03',
++    name: 'Kisetsu T-Shirt 03',
++    description: 'Wear your story with a design made to stand out.',
++    image: tshirt03,
++    hoverImage: '',
++    printOptions: [],
++    style: defaultProductStyle,
++  },
++  {
++    id: 't-04',
++    number: '04',
++    name: 'Kisetsu T-Shirt 04',
++    description: 'A black tee with a bold print — red or white, same design.',
++    image: tshirt04Red,
++    hoverImage: tshirt04White,
++    printOptions: [
++      { label: 'Red', image: tshirt04Red },
++      { label: 'White', image: tshirt04White },
++    ],
++    style: defaultProductStyle,
++  },
++]
++
+ export const defaultSiteContent = {
+   hero: {
+     eyebrow: 'KISETSU EXPRESSIONS',
+@@ -23,9 +84,31 @@ export const defaultSiteContent = {
+     { key: 'studentArt', title: 'Student Art', image: featureStudentArt },
+     { key: 'workshops', title: 'Workshops', image: featureWorkshops },
+   ],
++  products: defaultProducts,
++}
++
++function mergeProduct(product) {
++  return {
++    id: product.id,
++    number: product.number || '',
++    name: product.name || '',
++    description: product.description || '',
++    image: product.image || '',
++    hoverImage: product.hoverImage || '',
++    printOptions: Array.isArray(product.printOptions) ? product.printOptions : [],
++    style: {
++      name: { ...defaultProductStyle.name, ...product.style?.name },
++      details: { ...defaultProductStyle.details, ...product.style?.details },
++      amount: { ...defaultProductStyle.amount, ...product.style?.amount },
++    },
++  }
+ }
+ 
+ export function mergeSiteContent(savedContent) {
++  const savedProducts = Array.isArray(savedContent?.products) && savedContent.products.length > 0
++    ? savedContent.products
++    : defaultProducts
++
+   return {
+     ...defaultSiteContent,
+     ...savedContent,
+@@ -35,5 +118,6 @@ export function mergeSiteContent(savedContent) {
+       ...feature,
+       ...(savedContent?.features?.find((item) => item.key === feature.key) || {}),
+     })),
++    products: savedProducts.map(mergeProduct),
+   }
+ }
+diff --git a/supabase/setup.sql b/supabase/setup.sql
+index 8adbaa8..10fce27 100644
+--- a/supabase/setup.sql
++++ b/supabase/setup.sql
+@@ -78,4 +78,14 @@ using (
+   and exists (select 1 from public.admin_users where user_id = auth.uid())
+ );
+ 
++-- Allows approved admins to remove images from the site-images bucket
++-- (needed for the "delete image" / "delete product" buttons in the editor).
++drop policy if exists "Approved admins can delete site images" on storage.objects;
++create policy "Approved admins can delete site images"
++on storage.objects for delete to authenticated
++using (
++  bucket_id = 'site-images'
++  and exists (select 1 from public.admin_users where user_id = auth.uid())
++);
++
+ -- `kisetsu.expression@gmail.com` is automatically approved on their first magic-link sign-in.

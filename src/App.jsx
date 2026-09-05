@@ -35,8 +35,303 @@ function TshirtSwapImage({ primary, altImage, name }) {
 }
 
 
+function ArtworkPanel({
+  type,
+  artworks,
+  selectedArtwork,
+  onSelectArtwork,
+  onClose,
+  onBack,
+  createWhatsappLink,
+}) {
+  const isSelected = Boolean(selectedArtwork)
+  const title = type === 'painting' ? 'Paintings' : 'Student Art'
+  const eyebrow = type === 'painting' ? 'ORIGINAL PAINTINGS' : 'STUDENT ART'
+
+  const handleDeliveryChoice = (method) => {
+    if (!selectedArtwork) return
+
+    const message =
+      type === 'painting'
+        ? `Hello Kisetsu Expressions, I'd like to enquire about "${selectedArtwork.name}". I would prefer ${method}.`
+        : `Hello Kisetsu Expressions, I'd like to enquire about "${selectedArtwork.name}". I would prefer ${method}.`
+
+    window.open(createWhatsappLink(message), '_blank', 'noopener,noreferrer')
+  }
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 2000,
+        background: 'rgba(0, 0, 0, 0.72)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+        overflowY: 'auto',
+      }}
+    >
+      <div
+        style={{
+          width: 'min(1120px, 100%)',
+          maxHeight: 'calc(100vh - 48px)',
+          overflowY: 'auto',
+          background: 'var(--site-primary, #f5f1e8)',
+          color: '#111',
+          position: 'relative',
+          padding: 'clamp(24px, 4vw, 56px)',
+          boxShadow: '0 24px 80px rgba(0,0,0,.28)',
+        }}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          style={{
+            position: 'absolute',
+            top: 18,
+            right: 20,
+            border: 0,
+            background: 'transparent',
+            fontSize: 30,
+            lineHeight: 1,
+            cursor: 'pointer',
+            color: 'inherit',
+          }}
+        >
+          ×
+        </button>
+
+        {!isSelected ? (
+          <>
+            <p className="eyebrow">{eyebrow}</p>
+            <h2 style={{ marginTop: 8, marginBottom: 10 }}>{title}</h2>
+            <p style={{ maxWidth: 650, marginBottom: 32 }}>
+              {type === 'painting'
+                ? 'Explore the original artworks currently available from Kisetsu Expressions.'
+                : 'Explore the student artworks currently being shared by Kisetsu Expressions.'}
+            </p>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                gap: 20,
+              }}
+            >
+              {artworks.map((artwork) => (
+                <button
+                  type="button"
+                  key={artwork.id}
+                  onClick={() => onSelectArtwork(artwork)}
+                  style={{
+                    border: '1px solid rgba(0,0,0,.12)',
+                    background: '#fff',
+                    padding: 0,
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    color: '#111',
+                  }}
+                >
+                  <div
+                    style={{
+                      aspectRatio: '1 / 1',
+                      overflow: 'hidden',
+                      background: '#eee',
+                    }}
+                  >
+                    <img
+                      src={artwork.image}
+                      alt={artwork.name}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ padding: '16px 16px 18px' }}>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: 12,
+                        letterSpacing: '.12em',
+                        textTransform: 'uppercase',
+                        opacity: .65,
+                      }}
+                    >
+                      {type === 'painting' ? 'Original Artwork' : 'Student Artwork'}
+                    </p>
+                    <h3 style={{ margin: '7px 0 5px', fontSize: 20 }}>
+                      {artwork.name}
+                    </h3>
+                    <p style={{ margin: 0, opacity: .72 }}>
+                      {artwork.description}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={onBack}
+              style={{
+                border: 0,
+                background: 'transparent',
+                padding: 0,
+                marginBottom: 24,
+                cursor: 'pointer',
+                fontSize: 14,
+                letterSpacing: '.08em',
+                textTransform: 'uppercase',
+              }}
+            >
+              ← Back to {title}
+            </button>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'minmax(0, 1.1fr) minmax(280px, .9fr)',
+                gap: 'clamp(28px, 5vw, 64px)',
+                alignItems: 'start',
+              }}
+            >
+              <div style={{ background: '#fff' }}>
+                <img
+                  src={selectedArtwork.image}
+                  alt={selectedArtwork.name}
+                  style={{
+                    width: '100%',
+                    maxHeight: '65vh',
+                    objectFit: 'contain',
+                    display: 'block',
+                  }}
+                />
+              </div>
+
+              <div>
+                <p className="eyebrow">
+                  {type === 'painting' ? 'ORIGINAL PAINTING' : 'STUDENT ARTWORK'}
+                </p>
+
+                <h2 style={{ margin: '8px 0 14px' }}>
+                  {selectedArtwork.name}
+                </h2>
+
+                <p style={{ lineHeight: 1.7, opacity: .78 }}>
+                  {selectedArtwork.description}
+                </p>
+
+                {selectedArtwork.size ? (
+                  <p style={{ marginTop: 22 }}>
+                    <strong>Size:</strong> {selectedArtwork.size}
+                  </p>
+                ) : null}
+
+                {selectedArtwork.price ? (
+                  <p style={{ marginTop: 8, fontSize: 20 }}>
+                    <strong>{selectedArtwork.price}</strong>
+                  </p>
+                ) : null}
+
+                <div
+                  style={{
+                    marginTop: 30,
+                    paddingTop: 24,
+                    borderTop: '1px solid rgba(0,0,0,.12)',
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: 12,
+                      letterSpacing: '.12em',
+                      textTransform: 'uppercase',
+                      marginBottom: 14,
+                    }}
+                  >
+                    How would you like to receive it?
+                  </p>
+
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: 12,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className="button button-primary"
+                      onClick={() => handleDeliveryChoice('Pick Up')}
+                    >
+                      Pick Up
+                    </button>
+
+                    <button
+                      type="button"
+                      className="button button-secondary"
+                      onClick={() => handleDeliveryChoice('Delivery')}
+                    >
+                      Delivery
+                    </button>
+                  </div>
+
+                  <p
+                    style={{
+                      marginTop: 14,
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                      opacity: .65,
+                    }}
+                  >
+                    We will confirm availability, pickup details or delivery
+                    arrangements with you on WhatsApp.
+                  </p>
+                </div>
+
+                <a
+                  href={createWhatsappLink(
+                    `Hello Kisetsu Expressions, I'd like to enquire about "${selectedArtwork.name}".`
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="button"
+                  style={{
+                    display: 'inline-block',
+                    marginTop: 12,
+                    width: '100%',
+                    textAlign: 'center',
+                  }}
+                >
+                  Ask About This Artwork →
+                </a>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+
 function App() {
   const [selectedProduct, setSelectedProduct] = useState(null)
+  const [showPaintingsPanel, setShowPaintingsPanel] = useState(false)
+  const [selectedPainting, setSelectedPainting] = useState(null)
+  const [showStudentArtPanel, setShowStudentArtPanel] = useState(false)
+  const [selectedStudentArt, setSelectedStudentArt] = useState(null)
   const [activeFeature, setActiveFeature] = useState(0)
   const [isFeaturePaused, setIsFeaturePaused] = useState(false)
   const [siteContent, setSiteContent] = useState(defaultSiteContent)
@@ -67,6 +362,31 @@ function App() {
   }, [])
 
   const heroImage = siteContent.hero.image
+
+  // Temporary single-artwork collections.
+  // Later, these can be replaced by artwork records loaded from Supabase
+  // by the Admin dashboard without changing the customer-facing flow.
+  const paintings = [
+    {
+      id: 'painting-01',
+      image: siteContent.features[1].image,
+      name: 'Kisetsu Original Painting',
+      description: 'Original artwork created to bring colour, warmth, and character into your space.',
+      size: '',
+      price: '',
+    },
+  ]
+
+  const studentArt = [
+    {
+      id: 'student-art-01',
+      image: siteContent.features[2].image,
+      name: 'Student Artwork',
+      description: 'A student-created artwork celebrating creativity, confidence, and individuality.',
+      size: '',
+      price: '',
+    },
+  ]
 
   const features = [
     {
@@ -422,14 +742,16 @@ function App() {
               Discover original paintings created to bring warmth, colour,
               and a personal sense of expression into your space.
             </p>
-            <a
-              href={createWhatsappLink("Hello Kisetsu Expressions, I'd like to enquire about your paintings.")}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
               className="button button-primary"
+              onClick={() => {
+                setSelectedPainting(null)
+                setShowPaintingsPanel(true)
+              }}
             >
-              Enquire About a Painting
-            </a>
+              Explore Paintings →
+            </button>
           </div>
         </section>
 
@@ -446,14 +768,16 @@ function App() {
               Student art is where confidence grows and new voices emerge.
               Explore the creativity, care, and individuality behind each piece.
             </p>
-            <a
-              href={createWhatsappLink("Hello Kisetsu Expressions, I'd like to ask about student art.")}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
               className="button button-secondary"
+              onClick={() => {
+                setSelectedStudentArt(null)
+                setShowStudentArtPanel(true)
+              }}
             >
-              Ask About Student Art
-            </a>
+              Explore Student Art →
+            </button>
           </div>
 
           <div className="expression-image">
@@ -914,6 +1238,44 @@ function App() {
 
       </footer>
 
+
+      {/* =========================
+          PAINTINGS PANEL
+      ========================== */}
+
+      {showPaintingsPanel ? (
+        <ArtworkPanel
+          type="painting"
+          artworks={paintings}
+          selectedArtwork={selectedPainting}
+          onSelectArtwork={setSelectedPainting}
+          onClose={() => {
+            setShowPaintingsPanel(false)
+            setSelectedPainting(null)
+          }}
+          onBack={() => setSelectedPainting(null)}
+          createWhatsappLink={createWhatsappLink}
+        />
+      ) : null}
+
+      {/* =========================
+          STUDENT ART PANEL
+      ========================== */}
+
+      {showStudentArtPanel ? (
+        <ArtworkPanel
+          type="student"
+          artworks={studentArt}
+          selectedArtwork={selectedStudentArt}
+          onSelectArtwork={setSelectedStudentArt}
+          onClose={() => {
+            setShowStudentArtPanel(false)
+            setSelectedStudentArt(null)
+          }}
+          onBack={() => setSelectedStudentArt(null)}
+          createWhatsappLink={createWhatsappLink}
+        />
+      ) : null}
 
       {/* =========================
           PRODUCT MODAL
