@@ -1,0 +1,2272 @@
+diff --git a/ADMIN_SETUP.md b/ADMIN_SETUP.md
+index 98ed05b..4520ce6 100644
+--- a/ADMIN_SETUP.md
++++ b/ADMIN_SETUP.md
+@@ -1,24 +1,70 @@
+-# Admin editor setup
++# Website editor (`/admin`)
+ 
+-The admin page is available at `/admin`. It lets an approved editor change the homepage hero text and image, featured images, approved colors, font choice, and heading size.
++`/admin` shows the exact same public website — same layout, same design, same
++components. It is **not** a separate dashboard. When an approved editor signs
++in on `/admin`, the website itself becomes editable in place:
++
++- **Text**: click directly into any editable heading, paragraph, or caption
++  and type. Changes save when you click away, and go live once you press
++  **Save changes** in the small floating toolbar.
++- **Appearance**: switch the toolbar to **Style** mode, then click any
++  editable text to open a small panel for font family, size, weight, text
++  color, and background color for that element.
++- **Images**: hover the hero image or any of the four featured-category
++  images and use **Change image** to upload a replacement straight to
++  Supabase Storage — no source code editing, no hard-coded URLs.
++- **Paintings**: the Paintings section is backed by a real Supabase table.
++  Each painting in the gallery gets a small **Edit** button (title,
++  description, price, category, availability, image, delete), and there's a
++  discreet **+ Add painting** tile to add a new one. Every change here saves
++  immediately — no separate "Save" step needed for paintings.
++
++Visitors on `/` never see any of this — the editing affordances only render
++for an authenticated, approved admin viewing `/admin`.
+ 
+ ## One-time Supabase setup
+ 
+-1. In Supabase, open **SQL Editor** and run the complete contents of `supabase/setup.sql`.
+-2. In **Authentication > URL Configuration**, set the Site URL to the final Vercel domain. Add these Redirect URLs:
++1. In Supabase, open **SQL Editor** and run the complete contents of
++   `supabase/setup.sql` (creates `site_settings`, `admin_users`, and the
++   `site-images` storage bucket with RLS).
++2. Then run `supabase/paintings-and-editor-update.sql` (creates the
++   `paintings` table with its own RLS, and adds the storage "delete" policy
++   the editor needs to remove images). This file is additive and safe to run
++   more than once.
++3. In **Authentication > URL Configuration**, set the Site URL to the final
++   Vercel domain. Add these Redirect URLs:
+    - `http://localhost:5173/admin`
+    - `https://YOUR-VERCEL-DOMAIN/admin`
+    - `https://YOUR-CUSTOM-DOMAIN/admin` (if you use one)
+-3. In **Authentication > Providers > Email**, make sure Email is enabled. The editor signs in through a secure email link; no shared password is needed.
++4. In **Authentication > Providers > Email**, make sure Email is enabled.
++   The editor signs in through a secure email link; no shared password is
++   needed.
+ 
+ ## First editor
+ 
+-`kisetsu.expression@gmail.com` is included in `supabase/setup.sql`. After the SQL setup has run, give the client the `/admin` link. They enter this email once, use the secure link sent to their inbox, and can then edit the website.
++`kisetsu.expression@gmail.com` is included in `supabase/setup.sql`. After the
++SQL setup has run, give the client the `/admin` link. They enter this email
++once, use the secure link sent to their inbox, and can then edit the website.
++
++To add another editor later, add their email to the list inside
++`approve_known_editor()` in `supabase/setup.sql`, then re-run that function
++and trigger section in the SQL Editor.
++
++## What "Paintings" looked like before this update
+ 
+-To add another editor later, add their email to the list inside `approve_known_editor()` in `supabase/setup.sql`, then run the updated function and trigger section in Supabase SQL Editor.
++Previously the Paintings section showed a single hard-coded placeholder
++image/description with no way to manage it. After running
++`paintings-and-editor-update.sql`, that placeholder is gone — the section
++starts empty until an admin adds real paintings via `/admin`. Nothing was
++invented on the admin's behalf; add your real paintings whenever you're
++ready.
+ 
+ ## Security notes
+ 
+-- The public key in `.env.local` is safe to expose in a browser. Row Level Security restricts writes to approved editors.
+-- Never commit `.env.local`, and never use a Supabase `service_role` or secret key in this Vite website.
+-- Add another editor by repeating the same SQL statement with their email.
++- The public key in `.env.local` is safe to expose in a browser. Row Level
++  Security restricts writes to approved editors for both `site_settings` and
++  `paintings`, and restricts storage uploads/deletes the same way.
++- Never commit `.env.local`, and never use a Supabase `service_role` or
++  secret key in this Vite website.
++- Visiting `/admin` without being signed in and approved shows a sign-in
++  gate, not editable content — the URL alone grants no access.
+diff --git a/PROJECT_WORKFLOW.md b/PROJECT_WORKFLOW.md
+index 4c4aa28..5d4a05a 100644
+--- a/PROJECT_WORKFLOW.md
++++ b/PROJECT_WORKFLOW.md
+@@ -61,3 +61,4 @@ Add the **paintings catalogue** next. It is the highest-value Phase 2 addition:
+ | 2026-08-29 | Added this roadmap, workflow, and decision record. |
+ | 2026-08-29 | Completed the Phase 2.1 T-shirt pricing update: adult AED 60, kids AED 55; size category and size are required for orders. |
+ | 2026-08-30 | Added the hero artwork, automatic feature carousel, and dedicated paintings, student-art, and workshop sections. |
++| 2026-09-07 | Replaced the separate `/admin` dashboard with an in-place editor: `/admin` now renders the same public website, and an approved admin can edit text, typography/colors, images, and paintings directly on the page via a small floating toolbar. Paintings moved from a single hard-coded placeholder to a real Supabase `paintings` table with full add/edit/delete and RLS. Added `supabase/paintings-and-editor-update.sql` for the new table and a missing storage delete policy. |
+diff --git a/src/Admin.css b/src/Admin.css
+deleted file mode 100644
+index cc115d6..0000000
+--- a/src/Admin.css
++++ /dev/null
+@@ -1,25 +0,0 @@
+-.admin-shell { min-height: 100vh; padding: 32px 18px 64px; background: #f5f1e8; color: #172d3d; font-family: Arial, Helvetica, sans-serif; }
+-.admin-card { width: min(760px, 100%); margin: 0 auto; padding: clamp(24px, 5vw, 52px); background: #fff; box-shadow: 0 18px 50px rgba(18, 59, 93, .12); }
+-.admin-login { margin-top: 11vh; max-width: 480px; }
+-.admin-kicker { margin: 0 0 10px; color: #b22222; font-size: 11px; font-weight: 800; letter-spacing: .14em; }
+-.admin-card h1 { margin: 0; color: #123b5d; font-size: clamp(36px, 6vw, 56px); line-height: .95; }
+-.admin-card > p { color: #56616a; line-height: 1.6; }
+-.admin-card label { display: grid; gap: 7px; margin-top: 18px; color: #123b5d; font-size: 13px; font-weight: 800; }
+-.admin-card input, .admin-card textarea, .admin-card select { box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #cdd3d5; color: #172d3d; font: inherit; font-weight: 400; }
+-.admin-card input[type="color"] { height: 46px; padding: 4px; }
+-.admin-card input[type="range"] { padding: 0; }
+-.admin-card button { margin-top: 22px; border: 0; padding: 14px 18px; background: #123b5d; color: #fff; cursor: pointer; font: inherit; font-weight: 800; }
+-.admin-section { margin-top: 46px; padding-top: 28px; border-top: 1px solid #e5e7e8; }
+-.admin-section h2 { margin: 0; color: #123b5d; font-size: 24px; }
+-.admin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; }
+-.image-control { display: grid; grid-template-columns: 1fr 130px; gap: 14px; align-items: end; margin-top: 18px; }
+-.image-control label { margin-top: 0; }
+-.image-control img { width: 130px; height: 82px; object-fit: cover; background: #eee; }
+-.image-control .upload-label { grid-column: 1 / -1; }
+-.image-control input[type="file"] { padding: 8px 0; border: 0; }
+-.admin-save { background: #b22222 !important; }
+-.admin-status { margin: 18px 0 0; color: #b22222; line-height: 1.5; }
+-.admin-header { width: min(760px, 100%); display: flex; justify-content: space-between; margin: 0 auto 18px; }
+-.admin-header a { color: #123b5d; font-weight: 800; text-decoration: none; }
+-.admin-header .admin-logout { margin: 0; padding: 0; background: transparent; color: #123b5d; }
+-@media (max-width: 560px) { .admin-grid { grid-template-columns: 1fr; } }
+diff --git a/src/Admin.jsx b/src/Admin.jsx
+deleted file mode 100644
+index ea94faf..0000000
+--- a/src/Admin.jsx
++++ /dev/null
+@@ -1,137 +0,0 @@
+-import { useEffect, useState } from 'react'
+-import { hasSupabaseConfig, supabase } from './supabase.js'
+-import { defaultSiteContent, mergeSiteContent } from './siteContent.js'
+-import './Admin.css'
+-
+-function cloneContent(content) {
+-  return JSON.parse(JSON.stringify(content))
+-}
+-
+-export default function Admin() {
+-  const [email, setEmail] = useState('')
+-  const [session, setSession] = useState(null)
+-  const [content, setContent] = useState(() => cloneContent(defaultSiteContent))
+-  const [status, setStatus] = useState('')
+-  const [isAllowed, setIsAllowed] = useState(false)
+-
+-  useEffect(() => {
+-    if (!supabase) return undefined
+-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession))
+-    return () => listener.subscription.unsubscribe()
+-  }, [])
+-
+-  useEffect(() => {
+-    if (!session || !supabase) return
+-    async function loadContent() {
+-      const [{ data: admin }, { data: settings, error }] = await Promise.all([
+-        supabase.from('admin_users').select('user_id').eq('user_id', session.user.id).maybeSingle(),
+-        supabase.from('site_settings').select('content').eq('id', 'default').maybeSingle(),
+-      ])
+-      setIsAllowed(Boolean(admin))
+-      if (error) setStatus('Could not load the website settings.')
+-      if (settings?.content) setContent(mergeSiteContent(settings.content))
+-    }
+-    loadContent()
+-  }, [session])
+-
+-  const updateHero = (field, value) => setContent((current) => ({
+-    ...current, hero: { ...current.hero, [field]: value },
+-  }))
+-
+-  const updateTheme = (field, value) => setContent((current) => ({
+-    ...current, theme: { ...current.theme, [field]: value },
+-  }))
+-
+-  async function signIn(event) {
+-    event.preventDefault()
+-    setStatus('')
+-    const { error } = await supabase.auth.signInWithOtp({
+-      email,
+-      options: { emailRedirectTo: `${window.location.origin}/admin` },
+-    })
+-    setStatus(error ? error.message : 'Check your email for the secure sign-in link.')
+-  }
+-
+-  async function uploadImage(event, target) {
+-    const file = event.target.files?.[0]
+-    if (!file) return
+-    setStatus('Uploading image…')
+-    const extension = file.name.split('.').pop() || 'jpg'
+-    const path = `${target}-${Date.now()}.${extension}`
+-    const { error } = await supabase.storage.from('site-images').upload(path, file, { upsert: false })
+-    if (error) return setStatus(error.message)
+-    const { data } = supabase.storage.from('site-images').getPublicUrl(path)
+-    if (target === 'hero') updateHero('image', data.publicUrl)
+-    else setContent((current) => ({
+-      ...current,
+-      features: current.features.map((feature) => feature.key === target ? { ...feature, image: data.publicUrl } : feature),
+-    }))
+-    setStatus('Image uploaded. Remember to save your changes.')
+-  }
+-
+-  async function save() {
+-    setStatus('Saving…')
+-    const { error } = await supabase.from('site_settings').upsert({
+-      id: 'default', content, updated_at: new Date().toISOString(),
+-    })
+-    setStatus(error ? error.message : 'Saved. The live website has been updated.')
+-  }
+-
+-  if (!hasSupabaseConfig) return <SetupNotice />
+-
+-  if (!session) return (
+-    <main className="admin-shell">
+-      <section className="admin-card admin-login">
+-        <p className="admin-kicker">KISETSU EXPRESSIONS</p>
+-        <h1>Website editor</h1>
+-        <p>Sign in with the email address approved for the website.</p>
+-        <form onSubmit={signIn}>
+-          <label>Email address<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
+-          <button type="submit">Send secure sign-in link</button>
+-        </form>
+-        {status && <p className="admin-status">{status}</p>}
+-      </section>
+-    </main>
+-  )
+-
+-  if (!isAllowed) return (
+-    <main className="admin-shell"><section className="admin-card admin-login"><h1>Access pending</h1><p>This email has signed in, but it has not been approved as a website editor yet. Please ask the website owner to approve your account.</p></section></main>
+-  )
+-
+-  return (
+-    <main className="admin-shell">
+-      <header className="admin-header"><a href="/">← View website</a><button type="button" className="admin-logout" onClick={() => supabase.auth.signOut()}>Sign out</button></header>
+-      <section className="admin-card">
+-        <p className="admin-kicker">PRIVATE WEBSITE EDITOR</p>
+-        <h1>Update the homepage</h1>
+-        <p>Change the main image, words, and approved design choices. Click save when you are ready to make the changes live.</p>
+-
+-        <div className="admin-section"><h2>Hero section</h2>
+-          <label>Small heading<input value={content.hero.eyebrow} onChange={(event) => updateHero('eyebrow', event.target.value)} /></label>
+-          <label>Main heading<textarea value={content.hero.title} onChange={(event) => updateHero('title', event.target.value)} rows="3" /></label>
+-          <label>Description<textarea value={content.hero.description} onChange={(event) => updateHero('description', event.target.value)} rows="4" /></label>
+-          <ImageControl label="Hero image" src={content.hero.image} onChange={(event) => updateHero('image', event.target.value)} onUpload={(event) => uploadImage(event, 'hero')} />
+-        </div>
+-
+-        <div className="admin-section"><h2>Featured images</h2>
+-          {content.features.map((feature) => <ImageControl key={feature.key} label={feature.title} src={feature.image} onChange={(event) => setContent((current) => ({ ...current, features: current.features.map((item) => item.key === feature.key ? { ...item, image: event.target.value } : item) }))} onUpload={(event) => uploadImage(event, feature.key)} />)}
+-        </div>
+-
+-        <div className="admin-section"><h2>Website style</h2>
+-          <div className="admin-grid"><label>Main color<input type="color" value={content.theme.primaryColor} onChange={(event) => updateTheme('primaryColor', event.target.value)} /></label><label>Accent color<input type="color" value={content.theme.accentColor} onChange={(event) => updateTheme('accentColor', event.target.value)} /></label><label>Heading size<input type="range" min="70" max="130" value={content.theme.headingSize} onChange={(event) => updateTheme('headingSize', Number(event.target.value))} /><span>{content.theme.headingSize}px</span></label><label>Font<select value={content.theme.fontFamily} onChange={(event) => updateTheme('fontFamily', event.target.value)}><option value="Arial, Helvetica, sans-serif">Clean (Arial)</option><option value="Georgia, serif">Classic (Georgia)</option><option value="Trebuchet MS, sans-serif">Friendly (Trebuchet)</option></select></label></div>
+-        </div>
+-        <button className="admin-save" type="button" onClick={save}>Save and update website</button>
+-        {status && <p className="admin-status">{status}</p>}
+-      </section>
+-    </main>
+-  )
+-}
+-
+-function ImageControl({ label, src, onChange, onUpload }) {
+-  return <div className="image-control"><label>{label}<input value={src} onChange={onChange} placeholder="Paste image link" /></label><img src={src} alt="Current selection" /><label className="upload-label">Or upload a new image<input type="file" accept="image/*" onChange={onUpload} /></label></div>
+-}
+-
+-function SetupNotice() {
+-  return <main className="admin-shell"><section className="admin-card admin-login"><p className="admin-kicker">KISETSU EXPRESSIONS</p><h1>Editor setup is not finished</h1><p>The website editor has been added, but it still needs its Supabase connection settings before anyone can sign in.</p></section></main>
+-}
+diff --git a/src/App.jsx b/src/App.jsx
+index 4c74ac3..b25b8a5 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -12,8 +12,12 @@ import tshirt03 from './assets/kisetsu-tshirt3.jpg'
+ 
+ import tshirt04Red from './assets/tshirt-black-red-print.jpg'
+ import tshirt04White from './assets/tshirt-black-white-print.jpg'
+-import { hasSupabaseConfig, supabase } from './supabase.js'
+-import { defaultSiteContent, mergeSiteContent } from './siteContent.js'
++import { hasSupabaseConfig } from './supabase.js'
++import { EditorProvider, useEditor } from './EditorContext.jsx'
++import { EditableText, EditableImage } from './components/Editable.jsx'
++import AdminChrome from './components/AdminChrome.jsx'
++import PaintingEditor from './components/PaintingEditor.jsx'
++import { fetchPaintings, uploadSiteImage } from './lib/paintings.js'
+ 
+ 
+ function TshirtSwapImage({ primary, altImage, name }) {
+@@ -43,6 +47,9 @@ function ArtworkPanel({
+   onClose,
+   onBack,
+   createWhatsappLink,
++  canEdit,
++  onAddArtwork,
++  onEditArtwork,
+ }) {
+   const isSelected = Boolean(selectedArtwork)
+   const title = type === 'painting' ? 'Paintings' : 'Student Art'
+@@ -125,59 +132,106 @@ function ArtworkPanel({
+               }}
+             >
+               {artworks.map((artwork) => (
+-                <button
+-                  type="button"
+-                  key={artwork.id}
+-                  onClick={() => onSelectArtwork(artwork)}
+-                  style={{
+-                    border: '1px solid rgba(0,0,0,.12)',
+-                    background: '#fff',
+-                    padding: 0,
+-                    textAlign: 'left',
+-                    cursor: 'pointer',
+-                    color: '#111',
+-                  }}
+-                >
+-                  <div
++                <div key={artwork.id} style={{ position: 'relative' }}>
++                  <button
++                    type="button"
++                    onClick={() => onSelectArtwork(artwork)}
+                     style={{
+-                      aspectRatio: '1 / 1',
+-                      overflow: 'hidden',
+-                      background: '#eee',
++                      width: '100%',
++                      border: '1px solid rgba(0,0,0,.12)',
++                      background: '#fff',
++                      padding: 0,
++                      textAlign: 'left',
++                      cursor: 'pointer',
++                      color: '#111',
+                     }}
+                   >
+-                    <img
+-                      src={artwork.image}
+-                      alt={artwork.name}
++                    <div
+                       style={{
+-                        width: '100%',
+-                        height: '100%',
+-                        objectFit: 'cover',
+-                        display: 'block',
++                        aspectRatio: '1 / 1',
++                        overflow: 'hidden',
++                        background: '#eee',
+                       }}
+-                    />
+-                  </div>
++                    >
++                      <img
++                        src={artwork.image}
++                        alt={artwork.name}
++                        style={{
++                          width: '100%',
++                          height: '100%',
++                          objectFit: 'cover',
++                          display: 'block',
++                        }}
++                      />
++                    </div>
++
++                    <div style={{ padding: '16px 16px 18px' }}>
++                      <p
++                        style={{
++                          margin: 0,
++                          fontSize: 12,
++                          letterSpacing: '.12em',
++                          textTransform: 'uppercase',
++                          opacity: .65,
++                        }}
++                      >
++                        {type === 'painting' ? (artwork.status && artwork.status !== 'available' ? artwork.status.toUpperCase() : 'Original Artwork') : 'Student Artwork'}
++                      </p>
++                      <h3 style={{ margin: '7px 0 5px', fontSize: 20 }}>
++                        {artwork.name}
++                      </h3>
++                      <p style={{ margin: 0, opacity: .72 }}>
++                        {artwork.description}
++                      </p>
++                    </div>
++                  </button>
+ 
+-                  <div style={{ padding: '16px 16px 18px' }}>
+-                    <p
++                  {canEdit && type === 'painting' ? (
++                    <button
++                      type="button"
++                      onClick={(event) => {
++                        event.stopPropagation()
++                        onEditArtwork(artwork)
++                      }}
+                       style={{
+-                        margin: 0,
++                        position: 'absolute',
++                        top: 10,
++                        right: 10,
++                        background: 'rgba(18,59,93,.88)',
++                        color: '#fff',
++                        border: 0,
++                        borderRadius: 999,
++                        padding: '6px 12px',
+                         fontSize: 12,
+-                        letterSpacing: '.12em',
+-                        textTransform: 'uppercase',
+-                        opacity: .65,
++                        cursor: 'pointer',
+                       }}
+                     >
+-                      {type === 'painting' ? 'Original Artwork' : 'Student Artwork'}
+-                    </p>
+-                    <h3 style={{ margin: '7px 0 5px', fontSize: 20 }}>
+-                      {artwork.name}
+-                    </h3>
+-                    <p style={{ margin: 0, opacity: .72 }}>
+-                      {artwork.description}
+-                    </p>
+-                  </div>
+-                </button>
++                      Edit
++                    </button>
++                  ) : null}
++                </div>
+               ))}
++
++              {canEdit && type === 'painting' ? (
++                <button
++                  type="button"
++                  onClick={() => onAddArtwork()}
++                  style={{
++                    aspectRatio: '1 / 1',
++                    border: '2px dashed rgba(18,59,93,.4)',
++                    background: 'rgba(18,59,93,.04)',
++                    color: '#123b5d',
++                    cursor: 'pointer',
++                    fontSize: 15,
++                    fontWeight: 700,
++                    display: 'flex',
++                    alignItems: 'center',
++                    justifyContent: 'center',
++                  }}
++                >
++                  + Add painting
++                </button>
++              ) : null}
+             </div>
+           </>
+         ) : (
+@@ -199,6 +253,27 @@ function ArtworkPanel({
+               ← Back to {title}
+             </button>
+ 
++            {canEdit && type === 'painting' ? (
++              <button
++                type="button"
++                onClick={() => onEditArtwork(selectedArtwork)}
++                style={{
++                  float: 'right',
++                  background: '#123b5d',
++                  color: '#fff',
++                  border: 0,
++                  borderRadius: 999,
++                  padding: '8px 16px',
++                  fontSize: 13,
++                  fontWeight: 700,
++                  cursor: 'pointer',
++                  marginBottom: 24,
++                }}
++              >
++                Edit this painting
++              </button>
++            ) : null}
++
+             <div
+               style={{
+                 display: 'grid',
+@@ -326,7 +401,8 @@ function ArtworkPanel({
+ }
+ 
+ 
+-function App() {
++function SiteBody() {
++  const { content: siteContent, canEdit, updateText } = useEditor()
+   const [selectedProduct, setSelectedProduct] = useState(null)
+   const [showPaintingsPanel, setShowPaintingsPanel] = useState(false)
+   const [selectedPainting, setSelectedPainting] = useState(null)
+@@ -334,7 +410,11 @@ function App() {
+   const [selectedStudentArt, setSelectedStudentArt] = useState(null)
+   const [activeFeature, setActiveFeature] = useState(0)
+   const [isFeaturePaused, setIsFeaturePaused] = useState(false)
+-  const [siteContent, setSiteContent] = useState(defaultSiteContent)
++
++  const [paintings, setPaintings] = useState([])
++  const [editingPainting, setEditingPainting] = useState(null) // painting object, or {} for "new", or null for closed
++  const [heroUploading, setHeroUploading] = useState(false)
++  const [featureUploading, setFeatureUploading] = useState(null)
+ 
+   const whatsappLink = 'https://wa.me/971545735918'
+ 
+@@ -344,38 +424,30 @@ function App() {
+   const createWhatsappLink = (message) =>
+     whatsappLink + '?text=' + encodeURIComponent(message)
+ 
+-  useEffect(() => {
+-    if (!hasSupabaseConfig) return undefined
+-
+-    async function loadSiteSettings() {
+-      const { data, error } = await supabase
+-        .from('site_settings')
+-        .select('content')
+-        .eq('id', 'default')
+-        .maybeSingle()
+-
+-      if (!error && data?.content) setSiteContent(mergeSiteContent(data.content))
+-    }
++  async function reloadPaintings() {
++    if (!hasSupabaseConfig) return
++    const rows = await fetchPaintings()
++    setPaintings(rows)
++  }
+ 
+-    loadSiteSettings()
+-    return undefined
++  useEffect(() => {
++    reloadPaintings()
++    // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [])
+ 
+   const heroImage = siteContent.hero.image
+ 
+-  // Temporary single-artwork collections.
+-  // Later, these can be replaced by artwork records loaded from Supabase
+-  // by the Admin dashboard without changing the customer-facing flow.
+-  const paintings = [
+-    {
+-      id: 'painting-01',
+-      image: siteContent.features[1].image,
+-      name: 'Kisetsu Original Painting',
+-      description: 'Original artwork created to bring colour, warmth, and character into your space.',
+-      size: '',
+-      price: '',
+-    },
+-  ]
++  const visiblePaintings = paintings
++    .filter((painting) => canEdit || painting.status !== 'hidden')
++    .map((painting) => ({
++      id: painting.id,
++      image: painting.image_url || siteContent.features[1].image,
++      name: painting.title,
++      description: painting.description,
++      size: painting.category,
++      price: painting.price_text,
++      status: painting.status,
++    }))
+ 
+   const studentArt = [
+     {
+@@ -388,40 +460,11 @@ function App() {
+     },
+   ]
+ 
+-  const features = [
+-    {
+-      title: 'T-Shirts',
+-      description: 'Wear art that feels personal, expressive, and made to be seen.',
+-      image: siteContent.features[0].image,
+-      imageAlt: 'Person wearing a colourful Kisetsu T-shirt design',
+-      action: 'Shop T-Shirts',
+-      href: '#tshirts',
+-    },
+-    {
+-      title: 'Paintings',
+-      description: 'Original work with colour, feeling, and a story for your space.',
+-      image: siteContent.features[1].image,
+-      imageAlt: 'Original Kisetsu painting displayed in a home',
+-      action: 'Explore Paintings',
+-      href: '#paintings',
+-    },
+-    {
+-      title: 'Student Art',
+-      description: 'A celebration of young artists, new perspectives, and proud creative moments.',
+-      image: siteContent.features[2].image,
+-      imageAlt: 'Student holding a completed painting',
+-      action: 'Explore Student Art',
+-      href: '#student-art',
+-    },
+-    {
+-      title: 'Workshops',
+-      description: 'Bring people together through a guided, hands-on creative experience.',
+-      image: siteContent.features[3].image,
+-      imageAlt: 'Students creating art together in a workshop',
+-      action: 'Plan Your Creative Workshop',
+-      href: '#workshops',
+-    },
+-  ]
++  const features = siteContent.features.map((feature, index) => ({
++    ...feature,
++    index,
++    imageAlt: feature.title,
++  }))
+ 
+   useEffect(() => {
+     if (isFeaturePaused) return undefined
+@@ -433,6 +476,26 @@ function App() {
+     return () => window.clearInterval(timer)
+   }, [features.length, isFeaturePaused])
+ 
++  async function handleHeroUpload(file) {
++    setHeroUploading(true)
++    try {
++      const { url } = await uploadSiteImage(file, 'hero')
++      updateText('hero.image', url)
++    } finally {
++      setHeroUploading(false)
++    }
++  }
++
++  async function handleFeatureUpload(index, file) {
++    setFeatureUploading(index)
++    try {
++      const { url } = await uploadSiteImage(file, 'features')
++      updateText(`features.${index}.image`, url)
++    } finally {
++      setFeatureUploading(null)
++    }
++  }
++
+ 
+   const tshirts = [
+     {
+@@ -567,26 +630,25 @@ function App() {
+           style={{ '--hero-image': `url(${heroImage})` }}
+         >
+ 
+-          <div className="hero-content">
++          {canEdit ? (
++            <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
++              <EditableImage
++                src={heroImage}
++                alt="Hero background"
++                imgStyle={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0 }}
++                onUpload={handleHeroUpload}
++                uploading={heroUploading}
++              />
++            </div>
++          ) : null}
+ 
+-            <p className="eyebrow">
+-              {siteContent.hero.eyebrow}
+-            </p>
++          <div className="hero-content" style={{ position: 'relative', zIndex: 2 }}>
+ 
++            <EditableText path="hero.eyebrow" as="p" className="eyebrow" />
+ 
+-            <h1>
+-              {siteContent.hero.title.split('\n').map((line, index) => (
+-                <span key={`${line}-${index}`}>
+-                  {line}
+-                  {index < siteContent.hero.title.split('\n').length - 1 ? <br /> : null}
+-                </span>
+-              ))}
+-            </h1>
+-
++            <EditableText path="hero.title" as="h1" preLine />
+ 
+-            <p className="hero-description">
+-              {siteContent.hero.description}
+-            </p>
++            <EditableText path="hero.description" as="p" className="hero-description" />
+ 
+ 
+             <div className="hero-buttons">
+@@ -623,8 +685,8 @@ function App() {
+ 
+           <div className="discover-header">
+             <div>
+-              <p className="eyebrow">CHOOSE YOUR EXPRESSION</p>
+-              <h2>Made for every<br />creative moment.</h2>
++              <EditableText path="discover.eyebrow" as="p" className="eyebrow" />
++              <EditableText path="discover.heading" as="h2" preLine />
+             </div>
+ 
+             <button
+@@ -643,12 +705,18 @@ function App() {
+               style={{ transform: `translateX(-${activeFeature * 100}%)` }}
+             >
+               {features.map((feature) => (
+-                <article className="feature-slide" key={feature.title}>
+-                  <img src={feature.image} alt={feature.imageAlt} />
++                <article className="feature-slide" key={feature.key}>
++                  <EditableImage
++                    src={feature.image}
++                    alt={feature.imageAlt}
++                    imgStyle={{ width: '100%', height: '100%', minHeight: 550, objectFit: 'cover' }}
++                    onUpload={(file) => handleFeatureUpload(feature.index, file)}
++                    uploading={featureUploading === feature.index}
++                  />
+                   <div className="feature-slide-content">
+                     <p className="eyebrow">KISETSU {feature.title.toUpperCase()}</p>
+-                    <h3>{feature.title}</h3>
+-                    <p>{feature.description}</p>
++                    <EditableText path={`features.${feature.index}.title`} as="h3" />
++                    <EditableText path={`features.${feature.index}.description`} as="p" />
+                     <a href={feature.href} className="button button-primary">
+                       {feature.action}
+                     </a>
+@@ -671,7 +739,7 @@ function App() {
+                 {features.map((feature, index) => (
+                   <button
+                     type="button"
+-                    key={feature.title}
++                    key={feature.key}
+                     className={index === activeFeature ? 'is-active' : ''}
+                     onClick={() => setActiveFeature(index)}
+                     aria-label={`Show ${feature.title}`}
+@@ -702,24 +770,11 @@ function App() {
+ 
+           <div className="intro-content">
+ 
+-            <p className="eyebrow">
+-              KISETSU EXPRESSIONS
+-            </p>
+-
++            <EditableText path="intro.eyebrow" as="p" className="eyebrow" />
+ 
+-            <h2>
+-              More than a shirt.
+-              <br />
+-              It's an expression.
+-            </h2>
++            <EditableText path="intro.heading" as="h2" preLine />
+ 
+-
+-            <p>
+-              At Kisetsu Expressions, we believe what you
+-              wear can say something about who you are.
+-              Our T-shirts are created to bring personality,
+-              creativity, and meaning into everyday style.
+-            </p>
++            <EditableText path="intro.paragraph" as="p" />
+ 
+           </div>
+ 
+@@ -732,16 +787,18 @@ function App() {
+ 
+         <section id="paintings" className="expression-section paintings-section">
+           <div className="expression-image">
+-            <img src={siteContent.features[1].image} alt="Original Kisetsu painting displayed in a home" />
++            <EditableImage
++              src={siteContent.features[1].image}
++              alt="Original Kisetsu painting displayed in a home"
++              onUpload={(file) => handleFeatureUpload(1, file)}
++              uploading={featureUploading === 1}
++            />
+           </div>
+ 
+           <div className="expression-content">
+-            <p className="eyebrow">ORIGINAL PAINTINGS</p>
+-            <h2>Art that gives<br />a room a story.</h2>
+-            <p>
+-              Discover original paintings created to bring warmth, colour,
+-              and a personal sense of expression into your space.
+-            </p>
++            <EditableText path="paintingsSection.eyebrow" as="p" className="eyebrow" />
++            <EditableText path="paintingsSection.heading" as="h2" preLine />
++            <EditableText path="paintingsSection.description" as="p" />
+             <button
+               type="button"
+               className="button button-primary"
+@@ -750,7 +807,7 @@ function App() {
+                 setShowPaintingsPanel(true)
+               }}
+             >
+-              Explore Paintings →
++              {siteContent.paintingsSection.buttonLabel}
+             </button>
+           </div>
+         </section>
+@@ -762,12 +819,9 @@ function App() {
+ 
+         <section id="student-art" className="expression-section student-art-section">
+           <div className="expression-content">
+-            <p className="eyebrow">STUDENT ART</p>
+-            <h2>Big imagination.<br />Proudly shared.</h2>
+-            <p>
+-              Student art is where confidence grows and new voices emerge.
+-              Explore the creativity, care, and individuality behind each piece.
+-            </p>
++            <EditableText path="studentArtSection.eyebrow" as="p" className="eyebrow" />
++            <EditableText path="studentArtSection.heading" as="h2" preLine />
++            <EditableText path="studentArtSection.description" as="p" />
+             <button
+               type="button"
+               className="button button-secondary"
+@@ -776,12 +830,17 @@ function App() {
+                 setShowStudentArtPanel(true)
+               }}
+             >
+-              Explore Student Art →
++              {siteContent.studentArtSection.buttonLabel}
+             </button>
+           </div>
+ 
+           <div className="expression-image">
+-            <img src={siteContent.features[2].image} alt="Student holding a completed painting" />
++            <EditableImage
++              src={siteContent.features[2].image}
++              alt="Student holding a completed painting"
++              onUpload={(file) => handleFeatureUpload(2, file)}
++              uploading={featureUploading === 2}
++            />
+           </div>
+         </section>
+ 
+@@ -792,16 +851,18 @@ function App() {
+ 
+         <section id="workshops" className="workshops-section">
+           <div className="workshops-image">
+-            <img src={siteContent.features[3].image} alt="Students creating art together in a workshop" />
++            <EditableImage
++              src={siteContent.features[3].image}
++              alt="Students creating art together in a workshop"
++              onUpload={(file) => handleFeatureUpload(3, file)}
++              uploading={featureUploading === 3}
++            />
+           </div>
+ 
+           <div className="workshops-content">
+-            <p className="eyebrow">CREATIVE WORKSHOPS</p>
+-            <h2>Make something<br />meaningful together.</h2>
+-            <p>
+-              Plan a relaxed, guided art experience for your group. Tell us your
+-              preferred date, group size, and creative idea, and we will help shape the session.
+-            </p>
++            <EditableText path="workshopsSection.eyebrow" as="p" className="eyebrow" />
++            <EditableText path="workshopsSection.heading" as="h2" preLine />
++            <EditableText path="workshopsSection.description" as="p" />
+             <a
+               href={createWhatsappLink('Hello Kisetsu Expressions, I would like to plan a creative workshop. Preferred date: __ / Group size: __ / Idea: __')}
+               target="_blank"
+@@ -832,37 +893,18 @@ function App() {
+ 
+             <div className="about-heading">
+ 
+-              <h2>
+-                Made to
+-                <br />
+-                express.
+-              </h2>
++              <EditableText path="about.heading" as="h2" preLine />
+ 
+             </div>
+ 
+ 
+             <div className="about-text">
+ 
+-              <p>
+-                Kisetsu Expressions is a creative T-shirt
+-                brand focused on meaningful designs and
+-                expressive everyday wear.
+-              </p>
+-
+-
+-              <p>
+-                Each design is created with the idea that
+-                clothing can be more than something you wear.
+-                It can represent an idea, a feeling, a memory,
+-                or simply your personality.
+-              </p>
++              <EditableText path="about.paragraph1" as="p" />
+ 
++              <EditableText path="about.paragraph2" as="p" />
+ 
+-              <p>
+-                This is just the beginning. As Kisetsu grows,
+-                more products and creative expressions will
+-                be introduced.
+-              </p>
++              <EditableText path="about.paragraph3" as="p" />
+ 
+             </div>
+ 
+@@ -882,16 +924,9 @@ function App() {
+ 
+           <div className="services-header">
+ 
+-            <p className="eyebrow">
+-              THE COLLECTION
+-            </p>
+-
++            <EditableText path="tshirtsSection.eyebrow" as="p" className="eyebrow" />
+ 
+-            <h2>
+-              T-Shirts made
+-              <br />
+-              to be seen.
+-            </h2>
++            <EditableText path="tshirtsSection.heading" as="h2" preLine />
+ 
+           </div>
+ 
+@@ -978,23 +1013,11 @@ function App() {
+ 
+           <div className="cta-content">
+ 
+-            <p className="eyebrow">
+-              READY TO EXPRESS YOURSELF?
+-            </p>
+-
+-
+-            <h2>
+-              Find your
+-              <br />
+-              expression.
+-            </h2>
++            <EditableText path="cta.eyebrow" as="p" className="eyebrow" />
+ 
++            <EditableText path="cta.heading" as="h2" preLine />
+ 
+-            <p>
+-              See something you like? Contact Kisetsu
+-              Expressions directly and let's get your
+-              T-shirt ready.
+-            </p>
++            <EditableText path="cta.description" as="p" />
+ 
+ 
+             <a
+@@ -1029,11 +1052,7 @@ function App() {
+ 
+             <div>
+ 
+-              <h2>
+-                Let's talk
+-                <br />
+-                T-shirts.
+-              </h2>
++              <EditableText path="contact.heading" as="h2" preLine />
+ 
+             </div>
+ 
+@@ -1246,7 +1265,10 @@ function App() {
+       {showPaintingsPanel ? (
+         <ArtworkPanel
+           type="painting"
+-          artworks={paintings}
++          artworks={visiblePaintings}
++          canEdit={canEdit}
++          onAddArtwork={() => setEditingPainting({})}
++          onEditArtwork={(artwork) => setEditingPainting(paintings.find((item) => item.id === artwork.id) || {})}
+           selectedArtwork={selectedPainting}
+           onSelectArtwork={setSelectedPainting}
+           onClose={() => {
+@@ -1292,9 +1314,35 @@ function App() {
+ 
+       ) : null}
+ 
++      {/* =========================
++          PAINTING EDITOR (admin only)
++      ========================== */}
++
++      {editingPainting ? (
++        <PaintingEditor
++          painting={editingPainting.id ? editingPainting : null}
++          onClose={() => setEditingPainting(null)}
++          onSaved={() => {
++            setEditingPainting(null)
++            reloadPaintings()
++          }}
++          onDeleted={() => {
++            setEditingPainting(null)
++            if (selectedPainting) setSelectedPainting(null)
++            reloadPaintings()
++          }}
++        />
++      ) : null}
++
+     </div>
+   )
+ }
+ 
+-
+-export default App
++export default function App({ adminMode = false }) {
++  return (
++    <EditorProvider adminMode={adminMode}>
++      <AdminChrome />
++      <SiteBody />
++    </EditorProvider>
++  )
++}
+diff --git a/src/EditorContext.jsx b/src/EditorContext.jsx
+new file mode 100644
+index 0000000..40ca434
+--- /dev/null
++++ b/src/EditorContext.jsx
+@@ -0,0 +1,151 @@
++import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
++import { hasSupabaseConfig, supabase } from './supabase.js'
++import { defaultSiteContent, mergeSiteContent, getByPath, setByPath } from './siteContent.js'
++
++const EditorContext = createContext(null)
++
++export function EditorProvider({ adminMode, children }) {
++  const [content, setContent] = useState(defaultSiteContent)
++  const [contentLoaded, setContentLoaded] = useState(false)
++  const [session, setSession] = useState(null)
++  const [isAdmin, setIsAdmin] = useState(false)
++  const [checkingAdmin, setCheckingAdmin] = useState(false)
++  const [status, setStatus] = useState('')
++  const [dirty, setDirty] = useState(false)
++  const [mode, setMode] = useState('text') // 'text' | 'style'
++  const [stylePanelPath, setStylePanelPath] = useState(null)
++
++  // Public site content loads for everyone, admin or not.
++  useEffect(() => {
++    let active = true
++    if (!hasSupabaseConfig) {
++      setContentLoaded(true)
++      return undefined
++    }
++    supabase
++      .from('site_settings')
++      .select('content')
++      .eq('id', 'default')
++      .maybeSingle()
++      .then(({ data, error }) => {
++        if (!active) return
++        if (!error && data?.content) setContent(mergeSiteContent(data.content))
++        setContentLoaded(true)
++      })
++    return () => {
++      active = false
++    }
++  }, [])
++
++  // Auth only matters on /admin.
++  useEffect(() => {
++    if (!adminMode || !hasSupabaseConfig) return undefined
++    supabase.auth.getSession().then(({ data }) => setSession(data.session))
++    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession))
++    return () => listener.subscription.unsubscribe()
++  }, [adminMode])
++
++  useEffect(() => {
++    if (!adminMode || !session || !hasSupabaseConfig) {
++      setIsAdmin(false)
++      return undefined
++    }
++    let active = true
++    setCheckingAdmin(true)
++    supabase
++      .from('admin_users')
++      .select('user_id')
++      .eq('user_id', session.user.id)
++      .maybeSingle()
++      .then(({ data }) => {
++        if (active) {
++          setIsAdmin(Boolean(data))
++          setCheckingAdmin(false)
++        }
++      })
++    return () => {
++      active = false
++    }
++  }, [adminMode, session])
++
++  const canEdit = adminMode && isAdmin
++
++  const updateText = useCallback((path, value) => {
++    setContent((current) => setByPath(current, path, value))
++    setDirty(true)
++  }, [])
++
++  const updateStyle = useCallback((path, patch) => {
++    setContent((current) => {
++      const currentStyle = getByPath(current, `styles.${path}`) || {}
++      const nextStyle = { ...currentStyle, ...patch }
++      return setByPath(current, `styles.${path}`, nextStyle)
++    })
++    setDirty(true)
++  }, [])
++
++  const clearStyle = useCallback((path) => {
++    setContent((current) => setByPath(current, `styles.${path}`, {}))
++    setDirty(true)
++  }, [])
++
++  const save = useCallback(async () => {
++    if (!hasSupabaseConfig) return
++    setStatus('Saving…')
++    const { error } = await supabase.from('site_settings').upsert({
++      id: 'default',
++      content,
++      updated_at: new Date().toISOString(),
++    })
++    if (error) setStatus(error.message)
++    else {
++      setStatus('Saved. The live website has been updated.')
++      setDirty(false)
++    }
++  }, [content])
++
++  const signIn = useCallback(async (email) => {
++    setStatus('')
++    const { error } = await supabase.auth.signInWithOtp({
++      email,
++      options: { emailRedirectTo: `${window.location.origin}/admin` },
++    })
++    setStatus(error ? error.message : 'Check your email for the secure sign-in link.')
++  }, [])
++
++  const signOut = useCallback(async () => {
++    await supabase.auth.signOut()
++  }, [])
++
++  const value = useMemo(() => ({
++    content,
++    setContent,
++    contentLoaded,
++    canEdit,
++    adminMode,
++    session,
++    isAdmin,
++    checkingAdmin,
++    status,
++    setStatus,
++    dirty,
++    mode,
++    setMode,
++    stylePanelPath,
++    setStylePanelPath,
++    updateText,
++    updateStyle,
++    clearStyle,
++    save,
++    signIn,
++    signOut,
++  }), [content, contentLoaded, canEdit, adminMode, session, isAdmin, checkingAdmin, status, dirty, mode, stylePanelPath, updateText, updateStyle, clearStyle, save, signIn, signOut])
++
++  return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>
++}
++
++export function useEditor() {
++  const ctx = useContext(EditorContext)
++  if (!ctx) throw new Error('useEditor must be used within an EditorProvider')
++  return ctx
++}
+diff --git a/src/components/AdminChrome.css b/src/components/AdminChrome.css
+new file mode 100644
+index 0000000..97d9f26
+--- /dev/null
++++ b/src/components/AdminChrome.css
+@@ -0,0 +1,279 @@
++.cms-banner {
++  position: fixed;
++  top: 0;
++  left: 0;
++  right: 0;
++  z-index: 4000;
++  background: #b22222;
++  color: #fff;
++  text-align: center;
++  padding: 10px 16px;
++  font-size: 13px;
++  font-family: Arial, Helvetica, sans-serif;
++}
++
++.cms-overlay {
++  position: fixed;
++  inset: 0;
++  z-index: 3900;
++  background: rgba(18, 59, 93, 0.82);
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  padding: 20px;
++  font-family: Arial, Helvetica, sans-serif;
++}
++
++.cms-card {
++  background: #fff;
++  color: #111;
++  width: min(420px, 100%);
++  padding: 32px;
++  border-radius: 6px;
++  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
++}
++
++.cms-kicker {
++  font-size: 12px;
++  letter-spacing: 0.12em;
++  font-weight: 800;
++  color: #123b5d;
++  margin: 0 0 6px;
++}
++
++.cms-card h2 {
++  margin: 0 0 10px;
++}
++
++.cms-card label {
++  display: block;
++  margin-top: 16px;
++  font-size: 13px;
++  font-weight: 700;
++  color: #123b5d;
++}
++
++.cms-card input[type='email'] {
++  display: block;
++  width: 100%;
++  margin-top: 6px;
++  padding: 10px 12px;
++  border: 1px solid #ccc;
++  border-radius: 4px;
++  font-size: 14px;
++}
++
++.cms-card button {
++  margin-top: 20px;
++  background: #123b5d;
++  color: #fff;
++  border: 0;
++  padding: 11px 18px;
++  border-radius: 4px;
++  cursor: pointer;
++  font-weight: 700;
++}
++
++.cms-status {
++  margin-top: 14px;
++  font-size: 13px;
++  color: #123b5d;
++}
++
++/* Toolbar */
++.cms-toolbar {
++  position: fixed;
++  bottom: 18px;
++  left: 50%;
++  transform: translateX(-50%);
++  z-index: 3800;
++  background: #123b5d;
++  color: #fff;
++  border-radius: 999px;
++  padding: 8px 10px;
++  display: flex;
++  align-items: center;
++  gap: 10px;
++  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.3);
++  font-family: Arial, Helvetica, sans-serif;
++  font-size: 13px;
++  flex-wrap: wrap;
++  max-width: calc(100vw - 24px);
++}
++
++.cms-toolbar-label {
++  font-weight: 800;
++  padding: 0 6px 0 10px;
++  white-space: nowrap;
++}
++
++.cms-toolbar-modes {
++  display: flex;
++  background: rgba(255, 255, 255, 0.12);
++  border-radius: 999px;
++  padding: 2px;
++}
++
++.cms-toolbar-modes button {
++  background: transparent;
++  border: 0;
++  color: #fff;
++  padding: 6px 14px;
++  border-radius: 999px;
++  cursor: pointer;
++  font-size: 13px;
++}
++
++.cms-toolbar-modes button.is-active {
++  background: #fff;
++  color: #123b5d;
++  font-weight: 700;
++}
++
++.cms-toolbar-save {
++  background: #b22222;
++  color: #fff;
++  border: 0;
++  padding: 7px 16px;
++  border-radius: 999px;
++  cursor: pointer;
++  font-weight: 700;
++  white-space: nowrap;
++}
++
++.cms-toolbar-link {
++  background: transparent;
++  border: 0;
++  color: #fff;
++  opacity: 0.85;
++  cursor: pointer;
++  text-decoration: none;
++  padding: 6px 8px;
++  white-space: nowrap;
++}
++
++.cms-toolbar-link:hover {
++  opacity: 1;
++  text-decoration: underline;
++}
++
++.cms-toolbar-status {
++  opacity: 0.85;
++  white-space: nowrap;
++}
++
++/* Editable text affordances */
++.cms-editable-text {
++  outline: 1px dashed rgba(18, 59, 93, 0.45);
++  outline-offset: 3px;
++  cursor: text;
++  border-radius: 2px;
++}
++
++.cms-editable-text:focus {
++  outline: 2px solid #b22222;
++}
++
++.cms-editable-style {
++  outline: 1px dashed rgba(178, 34, 34, 0.5);
++  outline-offset: 3px;
++  cursor: pointer;
++  border-radius: 2px;
++}
++
++/* Editable image affordance */
++.cms-image-wrap {
++  position: relative;
++  display: block;
++  width: 100%;
++  height: 100%;
++}
++
++.cms-image-edit-btn {
++  position: absolute;
++  top: 10px;
++  right: 10px;
++  z-index: 10;
++  background: rgba(18, 59, 93, 0.85);
++  color: #fff;
++  border: 0;
++  padding: 6px 12px;
++  border-radius: 999px;
++  font-size: 12px;
++  cursor: pointer;
++  font-family: Arial, Helvetica, sans-serif;
++}
++
++.cms-image-edit-btn:disabled {
++  opacity: 0.6;
++  cursor: wait;
++}
++
++/* Style panel */
++.cms-style-panel {
++  position: fixed;
++  bottom: 78px;
++  right: 18px;
++  z-index: 3850;
++  background: #fff;
++  color: #111;
++  width: 260px;
++  padding: 16px;
++  border-radius: 8px;
++  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
++  font-family: Arial, Helvetica, sans-serif;
++  font-size: 13px;
++}
++
++.cms-style-panel-header {
++  display: flex;
++  justify-content: space-between;
++  align-items: center;
++  font-weight: 800;
++  color: #123b5d;
++  margin-bottom: 10px;
++}
++
++.cms-style-panel-header button {
++  background: transparent;
++  border: 0;
++  font-size: 18px;
++  cursor: pointer;
++  line-height: 1;
++  color: #123b5d;
++}
++
++.cms-style-panel label {
++  display: block;
++  margin-top: 10px;
++  font-weight: 700;
++  color: #123b5d;
++}
++
++.cms-style-panel select,
++.cms-style-panel input[type='range'] {
++  display: block;
++  width: 100%;
++  margin-top: 4px;
++}
++
++.cms-style-panel input[type='color'] {
++  display: block;
++  width: 100%;
++  margin-top: 4px;
++  height: 32px;
++  border: 1px solid #ccc;
++  border-radius: 4px;
++  padding: 2px;
++}
++
++.cms-style-clear {
++  margin-top: 14px;
++  width: 100%;
++  background: #f2f2f2;
++  border: 1px solid #ddd;
++  padding: 8px;
++  border-radius: 4px;
++  cursor: pointer;
++  font-weight: 700;
++}
+diff --git a/src/components/AdminChrome.jsx b/src/components/AdminChrome.jsx
+new file mode 100644
+index 0000000..5655cd1
+--- /dev/null
++++ b/src/components/AdminChrome.jsx
+@@ -0,0 +1,185 @@
++import { useState } from 'react'
++import { useEditor } from '../EditorContext.jsx'
++import { getByPath } from '../siteContent.js'
++import { hasSupabaseConfig } from '../supabase.js'
++import './AdminChrome.css'
++
++const FONT_OPTIONS = [
++  { label: 'Clean (Arial)', value: 'Arial, Helvetica, sans-serif' },
++  { label: 'Classic (Georgia)', value: 'Georgia, serif' },
++  { label: 'Friendly (Trebuchet)', value: 'Trebuchet MS, sans-serif' },
++  { label: 'Site default', value: '' },
++]
++
++const WEIGHT_OPTIONS = [
++  { label: 'Normal', value: '400' },
++  { label: 'Medium', value: '600' },
++  { label: 'Bold', value: '800' },
++]
++
++export default function AdminChrome() {
++  const { canEdit, session, isAdmin, checkingAdmin } = useEditor()
++
++  if (!hasSupabaseConfig) return <SetupBanner />
++  if (!session) return <SignInGate />
++  if (checkingAdmin) return null
++  if (!isAdmin) return <AccessPendingGate />
++  if (!canEdit) return null
++
++  return (
++    <>
++      <Toolbar />
++      <StylePanel />
++    </>
++  )
++}
++
++function SetupBanner() {
++  return (
++    <div className="cms-banner">
++      Editor setup is not finished — add the Supabase URL and anon key to the environment, then reload.
++    </div>
++  )
++}
++
++function SignInGate() {
++  const { signIn, status } = useEditor()
++  const [email, setEmail] = useState('')
++
++  return (
++    <div className="cms-overlay">
++      <form
++        className="cms-card"
++        onSubmit={(event) => {
++          event.preventDefault()
++          signIn(email)
++        }}
++      >
++        <p className="cms-kicker">KISETSU EXPRESSIONS</p>
++        <h2>Sign in to edit this website</h2>
++        <p>Enter the email address approved to edit the site. You'll get a secure sign-in link.</p>
++        <label>
++          Email address
++          <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
++        </label>
++        <button type="submit">Send secure sign-in link</button>
++        {status && <p className="cms-status">{status}</p>}
++      </form>
++    </div>
++  )
++}
++
++function AccessPendingGate() {
++  const { signOut } = useEditor()
++  return (
++    <div className="cms-overlay">
++      <div className="cms-card">
++        <h2>Access pending</h2>
++        <p>This email has signed in, but it hasn't been approved as a website editor yet. Ask the website owner to approve your account.</p>
++        <button type="button" onClick={signOut}>Sign out</button>
++      </div>
++    </div>
++  )
++}
++
++function Toolbar() {
++  const { mode, setMode, save, status, dirty, signOut } = useEditor()
++
++  return (
++    <div className="cms-toolbar">
++      <span className="cms-toolbar-label">Editing website</span>
++
++      <div className="cms-toolbar-modes">
++        <button type="button" className={mode === 'text' ? 'is-active' : ''} onClick={() => setMode('text')}>
++          Text
++        </button>
++        <button type="button" className={mode === 'style' ? 'is-active' : ''} onClick={() => setMode('style')}>
++          Style
++        </button>
++      </div>
++
++      <button type="button" className="cms-toolbar-save" onClick={save}>
++        {dirty ? 'Save changes' : 'Saved'}
++      </button>
++
++      <a href="/" className="cms-toolbar-link">View public site</a>
++      <button type="button" className="cms-toolbar-link" onClick={signOut}>Sign out</button>
++
++      {status && <span className="cms-toolbar-status">{status}</span>}
++    </div>
++  )
++}
++
++function StylePanel() {
++  const { content, stylePanelPath, setStylePanelPath, updateStyle, clearStyle } = useEditor()
++  if (!stylePanelPath) return null
++
++  const current = getByPath(content, `styles.${stylePanelPath}`) || {}
++
++  return (
++    <div className="cms-style-panel">
++      <div className="cms-style-panel-header">
++        <span>Appearance</span>
++        <button type="button" onClick={() => setStylePanelPath(null)} aria-label="Close">×</button>
++      </div>
++
++      <label>
++        Font family
++        <select
++          value={current.fontFamily || ''}
++          onChange={(event) => updateStyle(stylePanelPath, { fontFamily: event.target.value || undefined })}
++        >
++          {FONT_OPTIONS.map((option) => (
++            <option key={option.label} value={option.value}>{option.label}</option>
++          ))}
++        </select>
++      </label>
++
++      <label>
++        Font size ({current.fontSize || 'default'}px)
++        <input
++          type="range"
++          min="10"
++          max="120"
++          value={current.fontSize || 18}
++          onChange={(event) => updateStyle(stylePanelPath, { fontSize: Number(event.target.value) })}
++        />
++      </label>
++
++      <label>
++        Font weight
++        <select
++          value={current.fontWeight || ''}
++          onChange={(event) => updateStyle(stylePanelPath, { fontWeight: event.target.value || undefined })}
++        >
++          <option value="">Site default</option>
++          {WEIGHT_OPTIONS.map((option) => (
++            <option key={option.label} value={option.value}>{option.label}</option>
++          ))}
++        </select>
++      </label>
++
++      <label>
++        Text color
++        <input
++          type="color"
++          value={current.color || '#111111'}
++          onChange={(event) => updateStyle(stylePanelPath, { color: event.target.value })}
++        />
++      </label>
++
++      <label>
++        Background color
++        <input
++          type="color"
++          value={current.background || '#ffffff'}
++          onChange={(event) => updateStyle(stylePanelPath, { background: event.target.value })}
++        />
++      </label>
++
++      <button type="button" className="cms-style-clear" onClick={() => clearStyle(stylePanelPath)}>
++        Reset to site default
++      </button>
++    </div>
++  )
++}
+diff --git a/src/components/Editable.jsx b/src/components/Editable.jsx
+new file mode 100644
+index 0000000..e8d7a60
+--- /dev/null
++++ b/src/components/Editable.jsx
+@@ -0,0 +1,89 @@
++import { useRef } from 'react'
++import { useEditor } from '../EditorContext.jsx'
++import { getByPath } from '../siteContent.js'
++
++function computeStyle(styleOverride) {
++  if (!styleOverride) return undefined
++  const style = {}
++  if (styleOverride.fontFamily) style.fontFamily = styleOverride.fontFamily
++  if (styleOverride.fontSize) style.fontSize = `${styleOverride.fontSize}px`
++  if (styleOverride.fontWeight) style.fontWeight = styleOverride.fontWeight
++  if (styleOverride.color) style.color = styleOverride.color
++  if (styleOverride.background) style.background = styleOverride.background
++  return style
++}
++
++// Renders a text element whose content lives at `path` inside the shared
++// site content. On the public site (`canEdit` false) this is just the tag
++// with the text in it — no extra DOM, no behaviour change at all.
++// On /admin, for an approved admin, the same element becomes either
++// contentEditable (text mode) or a click target that opens the style panel
++// (style mode).
++export function EditableText({ path, as: Tag = 'span', className, preLine = false, style: extraStyle }) {
++  const { content, canEdit, mode, updateText, setStylePanelPath } = useEditor()
++  const ref = useRef(null)
++  const value = getByPath(content, path) ?? ''
++  const overrideStyle = computeStyle(getByPath(content, `styles.${path}`))
++  const combinedStyle = { ...(preLine ? { whiteSpace: 'pre-line' } : null), ...extraStyle, ...overrideStyle }
++
++  if (!canEdit) {
++    return <Tag className={className} style={combinedStyle}>{value}</Tag>
++  }
++
++  const isTextMode = mode === 'text'
++
++  return (
++    <Tag
++      ref={ref}
++      className={`${className || ''} cms-editable ${isTextMode ? 'cms-editable-text' : 'cms-editable-style'}`.trim()}
++      style={combinedStyle}
++      contentEditable={isTextMode}
++      suppressContentEditableWarning
++      onBlur={isTextMode ? (event) => updateText(path, event.currentTarget.innerText) : undefined}
++      onClick={!isTextMode ? (event) => {
++        event.preventDefault()
++        event.stopPropagation()
++        setStylePanelPath(path)
++      } : undefined}
++    >
++      {value}
++    </Tag>
++  )
++}
++
++// Wraps an <img> so an admin can replace it in place via a small overlay
++// button. On the public site this renders exactly the plain <img> that was
++// there before.
++export function EditableImage({ src, alt, className, imgStyle, onUpload, uploading }) {
++  const { canEdit } = useEditor()
++  const inputRef = useRef(null)
++
++  if (!canEdit) {
++    return <img src={src} alt={alt} className={className} style={imgStyle} />
++  }
++
++  return (
++    <span className="cms-image-wrap">
++      <img src={src} alt={alt} className={className} style={imgStyle} />
++      <button
++        type="button"
++        className="cms-image-edit-btn"
++        onClick={() => inputRef.current?.click()}
++        disabled={uploading}
++      >
++        {uploading ? 'Uploading…' : 'Change image'}
++      </button>
++      <input
++        ref={inputRef}
++        type="file"
++        accept="image/*"
++        style={{ display: 'none' }}
++        onChange={(event) => {
++          const file = event.target.files?.[0]
++          event.target.value = ''
++          if (file) onUpload(file)
++        }}
++      />
++    </span>
++  )
++}
+diff --git a/src/components/PaintingEditor.jsx b/src/components/PaintingEditor.jsx
+new file mode 100644
+index 0000000..840fb6c
+--- /dev/null
++++ b/src/components/PaintingEditor.jsx
+@@ -0,0 +1,212 @@
++import { useState } from 'react'
++import { createPainting, deleteImageByUrl, deletePainting, updatePainting, uploadPaintingImage } from '../lib/paintings.js'
++
++const STATUS_OPTIONS = [
++  { value: 'available', label: 'Available' },
++  { value: 'reserved', label: 'Reserved' },
++  { value: 'sold', label: 'Sold' },
++  { value: 'hidden', label: 'Hidden from website' },
++]
++
++export default function PaintingEditor({ painting, onClose, onSaved, onDeleted }) {
++  const isNew = !painting
++  const [form, setForm] = useState({
++    title: painting?.title || '',
++    description: painting?.description || '',
++    price_text: painting?.price_text || '',
++    category: painting?.category || '',
++    status: painting?.status || 'available',
++    image_url: painting?.image_url || '',
++  })
++  const [uploading, setUploading] = useState(false)
++  const [saving, setSaving] = useState(false)
++  const [error, setError] = useState('')
++
++  function setField(field, value) {
++    setForm((current) => ({ ...current, [field]: value }))
++  }
++
++  async function handleUpload(event) {
++    const file = event.target.files?.[0]
++    event.target.value = ''
++    if (!file) return
++    setUploading(true)
++    setError('')
++    try {
++      const { url } = await uploadPaintingImage(file)
++      setField('image_url', url)
++    } catch (uploadError) {
++      setError(uploadError.message)
++    } finally {
++      setUploading(false)
++    }
++  }
++
++  async function handleSave() {
++    setSaving(true)
++    setError('')
++    try {
++      if (isNew) {
++        const created = await createPainting(form)
++        onSaved(created)
++      } else {
++        const updated = await updatePainting(painting.id, form)
++        onSaved(updated)
++      }
++    } catch (saveError) {
++      setError(saveError.message)
++    } finally {
++      setSaving(false)
++    }
++  }
++
++  async function handleDelete() {
++    if (!painting) return
++    if (!window.confirm(`Delete "${painting.title}"? This cannot be undone.`)) return
++    setSaving(true)
++    setError('')
++    try {
++      await deletePainting(painting.id)
++      await deleteImageByUrl(painting.image_url)
++      onDeleted(painting.id)
++    } catch (deleteError) {
++      setError(deleteError.message)
++      setSaving(false)
++    }
++  }
++
++  return (
++    <div
++      role="dialog"
++      aria-modal="true"
++      aria-label={isNew ? 'Add painting' : 'Edit painting'}
++      style={{
++        position: 'fixed',
++        inset: 0,
++        zIndex: 4100,
++        background: 'rgba(0, 0, 0, 0.72)',
++        display: 'flex',
++        alignItems: 'center',
++        justifyContent: 'center',
++        padding: 24,
++        overflowY: 'auto',
++      }}
++      onClick={onClose}
++    >
++      <div
++        onClick={(event) => event.stopPropagation()}
++        style={{
++          width: 'min(560px, 100%)',
++          maxHeight: 'calc(100vh - 48px)',
++          overflowY: 'auto',
++          background: '#fff',
++          color: '#111',
++          padding: 'clamp(20px, 4vw, 40px)',
++          borderRadius: 6,
++          boxShadow: '0 24px 80px rgba(0,0,0,.28)',
++        }}
++      >
++        <p style={{ fontSize: 12, letterSpacing: '.12em', fontWeight: 800, color: '#123b5d', margin: '0 0 6px' }}>
++          {isNew ? 'ADD PAINTING' : 'EDIT PAINTING'}
++        </p>
++        <h2 style={{ margin: '0 0 20px' }}>{isNew ? 'New painting' : painting.title}</h2>
++
++        <div style={{ display: 'grid', gap: 16 }}>
++          <div>
++            {form.image_url ? (
++              <img src={form.image_url} alt="Painting preview" style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 4, marginBottom: 10 }} />
++            ) : null}
++            <label style={{ display: 'inline-block', background: '#123b5d', color: '#fff', padding: '9px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
++              {uploading ? 'Uploading…' : form.image_url ? 'Replace image' : 'Upload image'}
++              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleUpload} disabled={uploading} />
++            </label>
++          </div>
++
++          <label style={{ fontSize: 13, fontWeight: 700, color: '#123b5d' }}>
++            Title
++            <input
++              value={form.title}
++              onChange={(event) => setField('title', event.target.value)}
++              style={inputStyle}
++            />
++          </label>
++
++          <label style={{ fontSize: 13, fontWeight: 700, color: '#123b5d' }}>
++            Description
++            <textarea
++              value={form.description}
++              onChange={(event) => setField('description', event.target.value)}
++              rows={4}
++              style={{ ...inputStyle, resize: 'vertical' }}
++            />
++          </label>
++
++          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
++            <label style={{ fontSize: 13, fontWeight: 700, color: '#123b5d' }}>
++              Price
++              <input
++                value={form.price_text}
++                onChange={(event) => setField('price_text', event.target.value)}
++                placeholder="e.g. AED 800"
++                style={inputStyle}
++              />
++            </label>
++
++            <label style={{ fontSize: 13, fontWeight: 700, color: '#123b5d' }}>
++              Category
++              <input
++                value={form.category}
++                onChange={(event) => setField('category', event.target.value)}
++                placeholder="e.g. Landscape"
++                style={inputStyle}
++              />
++            </label>
++          </div>
++
++          <label style={{ fontSize: 13, fontWeight: 700, color: '#123b5d' }}>
++            Availability
++            <select value={form.status} onChange={(event) => setField('status', event.target.value)} style={inputStyle}>
++              {STATUS_OPTIONS.map((option) => (
++                <option key={option.value} value={option.value}>{option.label}</option>
++              ))}
++            </select>
++          </label>
++        </div>
++
++        {error && <p style={{ color: '#b22222', marginTop: 14 }}>{error}</p>}
++
++        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24, gap: 12, flexWrap: 'wrap' }}>
++          <div style={{ display: 'flex', gap: 10 }}>
++            <button type="button" className="button button-primary" onClick={handleSave} disabled={saving || uploading}>
++              {saving ? 'Saving…' : 'Save painting'}
++            </button>
++            <button type="button" className="button button-secondary" onClick={onClose} disabled={saving}>
++              Cancel
++            </button>
++          </div>
++          {!isNew && (
++            <button
++              type="button"
++              onClick={handleDelete}
++              disabled={saving}
++              style={{ background: 'transparent', border: '1px solid #b22222', color: '#b22222', borderRadius: 4, padding: '9px 16px', cursor: 'pointer', fontWeight: 700 }}
++            >
++              Delete painting
++            </button>
++          )}
++        </div>
++      </div>
++    </div>
++  )
++}
++
++const inputStyle = {
++  display: 'block',
++  width: '100%',
++  marginTop: 6,
++  padding: '9px 11px',
++  border: '1px solid #ccc',
++  borderRadius: 4,
++  fontSize: 14,
++  fontFamily: 'inherit',
++}
+diff --git a/src/lib/paintings.js b/src/lib/paintings.js
+new file mode 100644
+index 0000000..7fac515
+--- /dev/null
++++ b/src/lib/paintings.js
+@@ -0,0 +1,67 @@
++import { supabase } from '../supabase.js'
++
++export async function fetchPaintings() {
++  const { data, error } = await supabase
++    .from('paintings')
++    .select('*')
++    .order('sort_order', { ascending: true })
++    .order('created_at', { ascending: true })
++  if (error) throw error
++  return data || []
++}
++
++export async function createPainting(values) {
++  const { data, error } = await supabase
++    .from('paintings')
++    .insert({
++      title: values.title || 'Untitled painting',
++      description: values.description || '',
++      price_text: values.price_text || '',
++      category: values.category || '',
++      status: values.status || 'available',
++      image_url: values.image_url || null,
++      sort_order: values.sort_order ?? 0,
++    })
++    .select()
++    .single()
++  if (error) throw error
++  return data
++}
++
++export async function updatePainting(id, values) {
++  const { data, error } = await supabase
++    .from('paintings')
++    .update(values)
++    .eq('id', id)
++    .select()
++    .single()
++  if (error) throw error
++  return data
++}
++
++export async function deletePainting(id) {
++  const { error } = await supabase.from('paintings').delete().eq('id', id)
++  if (error) throw error
++}
++
++export async function uploadSiteImage(file, folder = 'site') {
++  const extension = file.name.split('.').pop() || 'jpg'
++  const path = `${folder}/${Date.now()}-${Math.round(Math.random() * 1e6)}.${extension}`
++  const { error } = await supabase.storage.from('site-images').upload(path, file, { upsert: false })
++  if (error) throw error
++  const { data } = supabase.storage.from('site-images').getPublicUrl(path)
++  return { path, url: data.publicUrl }
++}
++
++export async function uploadPaintingImage(file) {
++  return uploadSiteImage(file, 'paintings')
++}
++
++export async function deleteImageByUrl(url) {
++  if (!url) return
++  const marker = '/site-images/'
++  const index = url.indexOf(marker)
++  if (index === -1) return
++  const path = url.slice(index + marker.length)
++  await supabase.storage.from('site-images').remove([path])
++}
+diff --git a/src/main.jsx b/src/main.jsx
+index 6435d9d..6af2168 100644
+--- a/src/main.jsx
++++ b/src/main.jsx
+@@ -2,12 +2,11 @@ import { StrictMode } from 'react'
+ import { createRoot } from 'react-dom/client'
+ import './index.css'
+ import App from './App.jsx'
+-import Admin from './Admin.jsx'
+ 
+ const isAdminPage = window.location.pathname.replace(/\/$/, '') === '/admin'
+ 
+ createRoot(document.getElementById('root')).render(
+   <StrictMode>
+-    {isAdminPage ? <Admin /> : <App />}
++    <App adminMode={isAdminPage} />
+   </StrictMode>,
+ )
+diff --git a/src/siteContent.js b/src/siteContent.js
+index a4a42c4..31e2d8a 100644
+--- a/src/siteContent.js
++++ b/src/siteContent.js
+@@ -4,6 +4,9 @@ import featurePaintings from './assets/feature-paintings.jpg'
+ import featureStudentArt from './assets/feature-student-art.jpg'
+ import featureWorkshops from './assets/feature-workshops.jpg'
+ 
++// Every piece of copy the admin should be able to edit in place lives here,
++// with defaults that match the original hard-coded site exactly so nothing
++// changes visually until an admin actually edits something.
+ export const defaultSiteContent = {
+   hero: {
+     eyebrow: 'KISETSU EXPRESSIONS',
+@@ -18,22 +21,129 @@ export const defaultSiteContent = {
+     fontFamily: 'Arial, Helvetica, sans-serif',
+   },
+   features: [
+-    { key: 'tshirts', title: 'T-Shirts', image: featureTshirts },
+-    { key: 'paintings', title: 'Paintings', image: featurePaintings },
+-    { key: 'studentArt', title: 'Student Art', image: featureStudentArt },
+-    { key: 'workshops', title: 'Workshops', image: featureWorkshops },
++    {
++      key: 'tshirts',
++      title: 'T-Shirts',
++      image: featureTshirts,
++      description: 'Wear art that feels personal, expressive, and made to be seen.',
++      action: 'Shop T-Shirts',
++      href: '#tshirts',
++    },
++    {
++      key: 'paintings',
++      title: 'Paintings',
++      image: featurePaintings,
++      description: 'Original work with colour, feeling, and a story for your space.',
++      action: 'Explore Paintings',
++      href: '#paintings',
++    },
++    {
++      key: 'studentArt',
++      title: 'Student Art',
++      image: featureStudentArt,
++      description: 'A celebration of young artists, new perspectives, and proud creative moments.',
++      action: 'Explore Student Art',
++      href: '#student-art',
++    },
++    {
++      key: 'workshops',
++      title: 'Workshops',
++      image: featureWorkshops,
++      description: 'Bring people together through a guided, hands-on creative experience.',
++      action: 'Plan Your Creative Workshop',
++      href: '#workshops',
++    },
+   ],
++  discover: {
++    eyebrow: 'CHOOSE YOUR EXPRESSION',
++    heading: 'Made for every\ncreative moment.',
++  },
++  intro: {
++    eyebrow: 'KISETSU EXPRESSIONS',
++    heading: "More than a shirt.\nIt's an expression.",
++    paragraph: 'At Kisetsu Expressions, we believe what you wear can say something about who you are. Our T-shirts are created to bring personality, creativity, and meaning into everyday style.',
++  },
++  paintingsSection: {
++    eyebrow: 'ORIGINAL PAINTINGS',
++    heading: 'Art that gives\na room a story.',
++    description: 'Discover original paintings created to bring warmth, colour, and a personal sense of expression into your space.',
++    buttonLabel: 'Explore Paintings →',
++  },
++  studentArtSection: {
++    eyebrow: 'STUDENT ART',
++    heading: 'Big imagination.\nProudly shared.',
++    description: 'Student art is where confidence grows and new voices emerge. Explore the creativity, care, and individuality behind each piece.',
++    buttonLabel: 'Explore Student Art →',
++  },
++  workshopsSection: {
++    eyebrow: 'CREATIVE WORKSHOPS',
++    heading: 'Make something\nmeaningful together.',
++    description: 'Plan a relaxed, guided art experience for your group. Tell us your preferred date, group size, and creative idea, and we will help shape the session.',
++  },
++  about: {
++    heading: 'Made to\nexpress.',
++    paragraph1: 'Kisetsu Expressions is a creative T-shirt brand focused on meaningful designs and expressive everyday wear.',
++    paragraph2: 'Each design is created with the idea that clothing can be more than something you wear. It can represent an idea, a feeling, a memory, or simply your personality.',
++    paragraph3: 'This is just the beginning. As Kisetsu grows, more products and creative expressions will be introduced.',
++  },
++  tshirtsSection: {
++    eyebrow: 'THE COLLECTION',
++    heading: 'T-Shirts made\nto be seen.',
++  },
++  cta: {
++    eyebrow: 'READY TO EXPRESS YOURSELF?',
++    heading: 'Find your\nexpression.',
++    description: "See something you like? Contact Kisetsu Expressions directly and let's get your T-shirt ready.",
++  },
++  contact: {
++    heading: "Let's talk\nT-shirts.",
++  },
++  // Per-element typography/appearance overrides, keyed by the same dot-path
++  // used to look up the text itself (e.g. "hero.title"). Empty by default.
++  styles: {},
++}
++
++function isPlainObject(value) {
++  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
++}
++
++function deepMerge(base, saved) {
++  if (!isPlainObject(base)) return saved !== undefined ? saved : base
++  const result = { ...base }
++  if (isPlainObject(saved)) {
++    for (const key of Object.keys(base)) {
++      result[key] = deepMerge(base[key], saved[key])
++    }
++    for (const key of Object.keys(saved)) {
++      if (!(key in base)) result[key] = saved[key]
++    }
++  }
++  return result
+ }
+ 
+ export function mergeSiteContent(savedContent) {
+-  return {
+-    ...defaultSiteContent,
+-    ...savedContent,
+-    hero: { ...defaultSiteContent.hero, ...savedContent?.hero },
+-    theme: { ...defaultSiteContent.theme, ...savedContent?.theme },
+-    features: defaultSiteContent.features.map((feature) => ({
+-      ...feature,
+-      ...(savedContent?.features?.find((item) => item.key === feature.key) || {}),
+-    })),
++  const merged = deepMerge(defaultSiteContent, savedContent || {})
++  merged.features = defaultSiteContent.features.map((feature) => ({
++    ...feature,
++    ...(savedContent?.features?.find((item) => item.key === feature.key) || {}),
++  }))
++  return merged
++}
++
++export function getByPath(obj, path) {
++  return path.split('.').reduce((acc, key) => (acc == null ? acc : acc[key]), obj)
++}
++
++export function setByPath(obj, path, value) {
++  const keys = path.split('.')
++  const clone = Array.isArray(obj) ? [...obj] : { ...obj }
++  let cursor = clone
++  for (let i = 0; i < keys.length - 1; i += 1) {
++    const key = keys[i]
++    const next = cursor[key]
++    cursor[key] = Array.isArray(next) ? [...next] : { ...(next || {}) }
++    cursor = cursor[key]
+   }
++  cursor[keys[keys.length - 1]] = value
++  return clone
+ }
+diff --git a/supabase/paintings-and-editor-update.sql b/supabase/paintings-and-editor-update.sql
+new file mode 100644
+index 0000000..32f4594
+--- /dev/null
++++ b/supabase/paintings-and-editor-update.sql
+@@ -0,0 +1,83 @@
++-- Run this in Supabase Dashboard > SQL Editor AFTER supabase/setup.sql has already been run once.
++-- Safe to run more than once (uses "if not exists" / "or replace" / "drop ... if exists" everywhere).
++--
++-- This adds:
++--   1. A real `paintings` table so the admin can add/edit/delete paintings from the live site.
++--   2. A storage DELETE policy on the existing `site-images` bucket (needed so an admin can
++--      remove an image, not just upload/replace one).
++
++-- =========================================================
++-- 1. PAINTINGS TABLE
++-- =========================================================
++
++create table if not exists public.paintings (
++  id uuid primary key default gen_random_uuid(),
++  title text not null default 'Untitled painting',
++  description text not null default '',
++  price_text text not null default '',
++  category text not null default '',
++  status text not null default 'available', -- 'available' | 'sold' | 'reserved' | 'hidden'
++  image_url text,
++  sort_order integer not null default 0,
++  created_at timestamptz not null default now(),
++  updated_at timestamptz not null default now()
++);
++
++alter table public.paintings enable row level security;
++
++-- Public visitors can see every painting except ones the admin has marked "hidden".
++drop policy if exists "Public can view visible paintings" on public.paintings;
++create policy "Public can view visible paintings"
++on public.paintings for select
++using (status <> 'hidden');
++
++-- Approved admins can see everything, including hidden paintings.
++drop policy if exists "Admins can view all paintings" on public.paintings;
++create policy "Admins can view all paintings"
++on public.paintings for select
++using (exists (select 1 from public.admin_users where user_id = auth.uid()));
++
++drop policy if exists "Admins can add paintings" on public.paintings;
++create policy "Admins can add paintings"
++on public.paintings for insert to authenticated
++with check (exists (select 1 from public.admin_users where user_id = auth.uid()));
++
++drop policy if exists "Admins can update paintings" on public.paintings;
++create policy "Admins can update paintings"
++on public.paintings for update to authenticated
++using (exists (select 1 from public.admin_users where user_id = auth.uid()))
++with check (exists (select 1 from public.admin_users where user_id = auth.uid()));
++
++drop policy if exists "Admins can delete paintings" on public.paintings;
++create policy "Admins can delete paintings"
++on public.paintings for delete to authenticated
++using (exists (select 1 from public.admin_users where user_id = auth.uid()));
++
++-- Keep updated_at current automatically.
++create or replace function public.set_painting_updated_at()
++returns trigger
++language plpgsql
++as $$
++begin
++  new.updated_at = now();
++  return new;
++end;
++$$;
++
++drop trigger if exists set_painting_updated_at on public.paintings;
++create trigger set_painting_updated_at
++  before update on public.paintings
++  for each row execute procedure public.set_painting_updated_at();
++
++-- =========================================================
++-- 2. STORAGE: allow approved admins to delete images
++-- =========================================================
++-- (setup.sql already created the bucket + public read + admin insert/update policies.)
++
++drop policy if exists "Approved admins can delete site images" on storage.objects;
++create policy "Approved admins can delete site images"
++on storage.objects for delete to authenticated
++using (
++  bucket_id = 'site-images'
++  and exists (select 1 from public.admin_users where user_id = auth.uid())
++);

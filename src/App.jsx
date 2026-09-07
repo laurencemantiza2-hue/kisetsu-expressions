@@ -12,8 +12,12 @@ import tshirt03 from './assets/kisetsu-tshirt3.jpg'
 
 import tshirt04Red from './assets/tshirt-black-red-print.jpg'
 import tshirt04White from './assets/tshirt-black-white-print.jpg'
-import { hasSupabaseConfig, supabase } from './supabase.js'
-import { defaultSiteContent, mergeSiteContent } from './siteContent.js'
+import { hasSupabaseConfig } from './supabase.js'
+import { EditorProvider, useEditor } from './EditorContext.jsx'
+import { EditableText, EditableImage } from './components/Editable.jsx'
+import AdminChrome from './components/AdminChrome.jsx'
+import PaintingEditor from './components/PaintingEditor.jsx'
+import { fetchPaintings, uploadSiteImage } from './lib/paintings.js'
 
 
 function TshirtSwapImage({ primary, altImage, name }) {
@@ -43,6 +47,9 @@ function ArtworkPanel({
   onClose,
   onBack,
   createWhatsappLink,
+  canEdit,
+  onAddArtwork,
+  onEditArtwork,
 }) {
   const isSelected = Boolean(selectedArtwork)
   const title = type === 'painting' ? 'Paintings' : 'Student Art'
@@ -125,59 +132,106 @@ function ArtworkPanel({
               }}
             >
               {artworks.map((artwork) => (
-                <button
-                  type="button"
-                  key={artwork.id}
-                  onClick={() => onSelectArtwork(artwork)}
-                  style={{
-                    border: '1px solid rgba(0,0,0,.12)',
-                    background: '#fff',
-                    padding: 0,
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    color: '#111',
-                  }}
-                >
-                  <div
+                <div key={artwork.id} style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    onClick={() => onSelectArtwork(artwork)}
                     style={{
-                      aspectRatio: '1 / 1',
-                      overflow: 'hidden',
-                      background: '#eee',
+                      width: '100%',
+                      border: '1px solid rgba(0,0,0,.12)',
+                      background: '#fff',
+                      padding: 0,
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      color: '#111',
                     }}
                   >
-                    <img
-                      src={artwork.image}
-                      alt={artwork.name}
+                    <div
                       style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        display: 'block',
-                      }}
-                    />
-                  </div>
-
-                  <div style={{ padding: '16px 16px 18px' }}>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: 12,
-                        letterSpacing: '.12em',
-                        textTransform: 'uppercase',
-                        opacity: .65,
+                        aspectRatio: '1 / 1',
+                        overflow: 'hidden',
+                        background: '#eee',
                       }}
                     >
-                      {type === 'painting' ? 'Original Artwork' : 'Student Artwork'}
-                    </p>
-                    <h3 style={{ margin: '7px 0 5px', fontSize: 20 }}>
-                      {artwork.name}
-                    </h3>
-                    <p style={{ margin: 0, opacity: .72 }}>
-                      {artwork.description}
-                    </p>
-                  </div>
-                </button>
+                      <img
+                        src={artwork.image}
+                        alt={artwork.name}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ padding: '16px 16px 18px' }}>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: 12,
+                          letterSpacing: '.12em',
+                          textTransform: 'uppercase',
+                          opacity: .65,
+                        }}
+                      >
+                        {type === 'painting' ? (artwork.status && artwork.status !== 'available' ? artwork.status.toUpperCase() : 'Original Artwork') : 'Student Artwork'}
+                      </p>
+                      <h3 style={{ margin: '7px 0 5px', fontSize: 20 }}>
+                        {artwork.name}
+                      </h3>
+                      <p style={{ margin: 0, opacity: .72 }}>
+                        {artwork.description}
+                      </p>
+                    </div>
+                  </button>
+
+                  {canEdit && type === 'painting' ? (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        onEditArtwork(artwork)
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: 10,
+                        right: 10,
+                        background: 'rgba(18,59,93,.88)',
+                        color: '#fff',
+                        border: 0,
+                        borderRadius: 999,
+                        padding: '6px 12px',
+                        fontSize: 12,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Edit
+                    </button>
+                  ) : null}
+                </div>
               ))}
+
+              {canEdit && type === 'painting' ? (
+                <button
+                  type="button"
+                  onClick={() => onAddArtwork()}
+                  style={{
+                    aspectRatio: '1 / 1',
+                    border: '2px dashed rgba(18,59,93,.4)',
+                    background: 'rgba(18,59,93,.04)',
+                    color: '#123b5d',
+                    cursor: 'pointer',
+                    fontSize: 15,
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  + Add painting
+                </button>
+              ) : null}
             </div>
           </>
         ) : (
@@ -198,6 +252,27 @@ function ArtworkPanel({
             >
               ← Back to {title}
             </button>
+
+            {canEdit && type === 'painting' ? (
+              <button
+                type="button"
+                onClick={() => onEditArtwork(selectedArtwork)}
+                style={{
+                  float: 'right',
+                  background: '#123b5d',
+                  color: '#fff',
+                  border: 0,
+                  borderRadius: 999,
+                  padding: '8px 16px',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  marginBottom: 24,
+                }}
+              >
+                Edit this painting
+              </button>
+            ) : null}
 
             <div
               style={{
@@ -326,7 +401,8 @@ function ArtworkPanel({
 }
 
 
-function App() {
+function SiteBody() {
+  const { content: siteContent, canEdit, updateText } = useEditor()
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [showPaintingsPanel, setShowPaintingsPanel] = useState(false)
   const [selectedPainting, setSelectedPainting] = useState(null)
@@ -334,7 +410,11 @@ function App() {
   const [selectedStudentArt, setSelectedStudentArt] = useState(null)
   const [activeFeature, setActiveFeature] = useState(0)
   const [isFeaturePaused, setIsFeaturePaused] = useState(false)
-  const [siteContent, setSiteContent] = useState(defaultSiteContent)
+
+  const [paintings, setPaintings] = useState([])
+  const [editingPainting, setEditingPainting] = useState(null) // painting object, or {} for "new", or null for closed
+  const [heroUploading, setHeroUploading] = useState(false)
+  const [featureUploading, setFeatureUploading] = useState(null)
 
   const whatsappLink = 'https://wa.me/971545735918'
 
@@ -344,38 +424,30 @@ function App() {
   const createWhatsappLink = (message) =>
     whatsappLink + '?text=' + encodeURIComponent(message)
 
+  async function reloadPaintings() {
+    if (!hasSupabaseConfig) return
+    const rows = await fetchPaintings()
+    setPaintings(rows)
+  }
+
   useEffect(() => {
-    if (!hasSupabaseConfig) return undefined
-
-    async function loadSiteSettings() {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('content')
-        .eq('id', 'default')
-        .maybeSingle()
-
-      if (!error && data?.content) setSiteContent(mergeSiteContent(data.content))
-    }
-
-    loadSiteSettings()
-    return undefined
+    reloadPaintings()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const heroImage = siteContent.hero.image
 
-  // Temporary single-artwork collections.
-  // Later, these can be replaced by artwork records loaded from Supabase
-  // by the Admin dashboard without changing the customer-facing flow.
-  const paintings = [
-    {
-      id: 'painting-01',
-      image: siteContent.features[1].image,
-      name: 'Kisetsu Original Painting',
-      description: 'Original artwork created to bring colour, warmth, and character into your space.',
-      size: '',
-      price: '',
-    },
-  ]
+  const visiblePaintings = paintings
+    .filter((painting) => canEdit || painting.status !== 'hidden')
+    .map((painting) => ({
+      id: painting.id,
+      image: painting.image_url || siteContent.features[1].image,
+      name: painting.title,
+      description: painting.description,
+      size: painting.category,
+      price: painting.price_text,
+      status: painting.status,
+    }))
 
   const studentArt = [
     {
@@ -388,40 +460,11 @@ function App() {
     },
   ]
 
-  const features = [
-    {
-      title: 'T-Shirts',
-      description: 'Wear art that feels personal, expressive, and made to be seen.',
-      image: siteContent.features[0].image,
-      imageAlt: 'Person wearing a colourful Kisetsu T-shirt design',
-      action: 'Shop T-Shirts',
-      href: '#tshirts',
-    },
-    {
-      title: 'Paintings',
-      description: 'Original work with colour, feeling, and a story for your space.',
-      image: siteContent.features[1].image,
-      imageAlt: 'Original Kisetsu painting displayed in a home',
-      action: 'Explore Paintings',
-      href: '#paintings',
-    },
-    {
-      title: 'Student Art',
-      description: 'A celebration of young artists, new perspectives, and proud creative moments.',
-      image: siteContent.features[2].image,
-      imageAlt: 'Student holding a completed painting',
-      action: 'Explore Student Art',
-      href: '#student-art',
-    },
-    {
-      title: 'Workshops',
-      description: 'Bring people together through a guided, hands-on creative experience.',
-      image: siteContent.features[3].image,
-      imageAlt: 'Students creating art together in a workshop',
-      action: 'Plan Your Creative Workshop',
-      href: '#workshops',
-    },
-  ]
+  const features = siteContent.features.map((feature, index) => ({
+    ...feature,
+    index,
+    imageAlt: feature.title,
+  }))
 
   useEffect(() => {
     if (isFeaturePaused) return undefined
@@ -432,6 +475,26 @@ function App() {
 
     return () => window.clearInterval(timer)
   }, [features.length, isFeaturePaused])
+
+  async function handleHeroUpload(file) {
+    setHeroUploading(true)
+    try {
+      const { url } = await uploadSiteImage(file, 'hero')
+      updateText('hero.image', url)
+    } finally {
+      setHeroUploading(false)
+    }
+  }
+
+  async function handleFeatureUpload(index, file) {
+    setFeatureUploading(index)
+    try {
+      const { url } = await uploadSiteImage(file, 'features')
+      updateText(`features.${index}.image`, url)
+    } finally {
+      setFeatureUploading(null)
+    }
+  }
 
 
   const tshirts = [
@@ -567,26 +630,25 @@ function App() {
           style={{ '--hero-image': `url(${heroImage})` }}
         >
 
-          <div className="hero-content">
+          {canEdit ? (
+            <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
+              <EditableImage
+                src={heroImage}
+                alt="Hero background"
+                imgStyle={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0 }}
+                onUpload={handleHeroUpload}
+                uploading={heroUploading}
+              />
+            </div>
+          ) : null}
 
-            <p className="eyebrow">
-              {siteContent.hero.eyebrow}
-            </p>
+          <div className="hero-content" style={{ position: 'relative', zIndex: 2 }}>
 
+            <EditableText path="hero.eyebrow" as="p" className="eyebrow" />
 
-            <h1>
-              {siteContent.hero.title.split('\n').map((line, index) => (
-                <span key={`${line}-${index}`}>
-                  {line}
-                  {index < siteContent.hero.title.split('\n').length - 1 ? <br /> : null}
-                </span>
-              ))}
-            </h1>
+            <EditableText path="hero.title" as="h1" preLine />
 
-
-            <p className="hero-description">
-              {siteContent.hero.description}
-            </p>
+            <EditableText path="hero.description" as="p" className="hero-description" />
 
 
             <div className="hero-buttons">
@@ -623,8 +685,8 @@ function App() {
 
           <div className="discover-header">
             <div>
-              <p className="eyebrow">CHOOSE YOUR EXPRESSION</p>
-              <h2>Made for every<br />creative moment.</h2>
+              <EditableText path="discover.eyebrow" as="p" className="eyebrow" />
+              <EditableText path="discover.heading" as="h2" preLine />
             </div>
 
             <button
@@ -643,12 +705,18 @@ function App() {
               style={{ transform: `translateX(-${activeFeature * 100}%)` }}
             >
               {features.map((feature) => (
-                <article className="feature-slide" key={feature.title}>
-                  <img src={feature.image} alt={feature.imageAlt} />
+                <article className="feature-slide" key={feature.key}>
+                  <EditableImage
+                    src={feature.image}
+                    alt={feature.imageAlt}
+                    imgStyle={{ width: '100%', height: '100%', minHeight: 550, objectFit: 'cover' }}
+                    onUpload={(file) => handleFeatureUpload(feature.index, file)}
+                    uploading={featureUploading === feature.index}
+                  />
                   <div className="feature-slide-content">
                     <p className="eyebrow">KISETSU {feature.title.toUpperCase()}</p>
-                    <h3>{feature.title}</h3>
-                    <p>{feature.description}</p>
+                    <EditableText path={`features.${feature.index}.title`} as="h3" />
+                    <EditableText path={`features.${feature.index}.description`} as="p" />
                     <a href={feature.href} className="button button-primary">
                       {feature.action}
                     </a>
@@ -671,7 +739,7 @@ function App() {
                 {features.map((feature, index) => (
                   <button
                     type="button"
-                    key={feature.title}
+                    key={feature.key}
                     className={index === activeFeature ? 'is-active' : ''}
                     onClick={() => setActiveFeature(index)}
                     aria-label={`Show ${feature.title}`}
@@ -702,24 +770,11 @@ function App() {
 
           <div className="intro-content">
 
-            <p className="eyebrow">
-              KISETSU EXPRESSIONS
-            </p>
+            <EditableText path="intro.eyebrow" as="p" className="eyebrow" />
 
+            <EditableText path="intro.heading" as="h2" preLine />
 
-            <h2>
-              More than a shirt.
-              <br />
-              It's an expression.
-            </h2>
-
-
-            <p>
-              At Kisetsu Expressions, we believe what you
-              wear can say something about who you are.
-              Our T-shirts are created to bring personality,
-              creativity, and meaning into everyday style.
-            </p>
+            <EditableText path="intro.paragraph" as="p" />
 
           </div>
 
@@ -732,16 +787,18 @@ function App() {
 
         <section id="paintings" className="expression-section paintings-section">
           <div className="expression-image">
-            <img src={siteContent.features[1].image} alt="Original Kisetsu painting displayed in a home" />
+            <EditableImage
+              src={siteContent.features[1].image}
+              alt="Original Kisetsu painting displayed in a home"
+              onUpload={(file) => handleFeatureUpload(1, file)}
+              uploading={featureUploading === 1}
+            />
           </div>
 
           <div className="expression-content">
-            <p className="eyebrow">ORIGINAL PAINTINGS</p>
-            <h2>Art that gives<br />a room a story.</h2>
-            <p>
-              Discover original paintings created to bring warmth, colour,
-              and a personal sense of expression into your space.
-            </p>
+            <EditableText path="paintingsSection.eyebrow" as="p" className="eyebrow" />
+            <EditableText path="paintingsSection.heading" as="h2" preLine />
+            <EditableText path="paintingsSection.description" as="p" />
             <button
               type="button"
               className="button button-primary"
@@ -750,7 +807,7 @@ function App() {
                 setShowPaintingsPanel(true)
               }}
             >
-              Explore Paintings →
+              {siteContent.paintingsSection.buttonLabel}
             </button>
           </div>
         </section>
@@ -762,12 +819,9 @@ function App() {
 
         <section id="student-art" className="expression-section student-art-section">
           <div className="expression-content">
-            <p className="eyebrow">STUDENT ART</p>
-            <h2>Big imagination.<br />Proudly shared.</h2>
-            <p>
-              Student art is where confidence grows and new voices emerge.
-              Explore the creativity, care, and individuality behind each piece.
-            </p>
+            <EditableText path="studentArtSection.eyebrow" as="p" className="eyebrow" />
+            <EditableText path="studentArtSection.heading" as="h2" preLine />
+            <EditableText path="studentArtSection.description" as="p" />
             <button
               type="button"
               className="button button-secondary"
@@ -776,12 +830,17 @@ function App() {
                 setShowStudentArtPanel(true)
               }}
             >
-              Explore Student Art →
+              {siteContent.studentArtSection.buttonLabel}
             </button>
           </div>
 
           <div className="expression-image">
-            <img src={siteContent.features[2].image} alt="Student holding a completed painting" />
+            <EditableImage
+              src={siteContent.features[2].image}
+              alt="Student holding a completed painting"
+              onUpload={(file) => handleFeatureUpload(2, file)}
+              uploading={featureUploading === 2}
+            />
           </div>
         </section>
 
@@ -792,16 +851,18 @@ function App() {
 
         <section id="workshops" className="workshops-section">
           <div className="workshops-image">
-            <img src={siteContent.features[3].image} alt="Students creating art together in a workshop" />
+            <EditableImage
+              src={siteContent.features[3].image}
+              alt="Students creating art together in a workshop"
+              onUpload={(file) => handleFeatureUpload(3, file)}
+              uploading={featureUploading === 3}
+            />
           </div>
 
           <div className="workshops-content">
-            <p className="eyebrow">CREATIVE WORKSHOPS</p>
-            <h2>Make something<br />meaningful together.</h2>
-            <p>
-              Plan a relaxed, guided art experience for your group. Tell us your
-              preferred date, group size, and creative idea, and we will help shape the session.
-            </p>
+            <EditableText path="workshopsSection.eyebrow" as="p" className="eyebrow" />
+            <EditableText path="workshopsSection.heading" as="h2" preLine />
+            <EditableText path="workshopsSection.description" as="p" />
             <a
               href={createWhatsappLink('Hello Kisetsu Expressions, I would like to plan a creative workshop. Preferred date: __ / Group size: __ / Idea: __')}
               target="_blank"
@@ -832,37 +893,18 @@ function App() {
 
             <div className="about-heading">
 
-              <h2>
-                Made to
-                <br />
-                express.
-              </h2>
+              <EditableText path="about.heading" as="h2" preLine />
 
             </div>
 
 
             <div className="about-text">
 
-              <p>
-                Kisetsu Expressions is a creative T-shirt
-                brand focused on meaningful designs and
-                expressive everyday wear.
-              </p>
+              <EditableText path="about.paragraph1" as="p" />
 
+              <EditableText path="about.paragraph2" as="p" />
 
-              <p>
-                Each design is created with the idea that
-                clothing can be more than something you wear.
-                It can represent an idea, a feeling, a memory,
-                or simply your personality.
-              </p>
-
-
-              <p>
-                This is just the beginning. As Kisetsu grows,
-                more products and creative expressions will
-                be introduced.
-              </p>
+              <EditableText path="about.paragraph3" as="p" />
 
             </div>
 
@@ -882,16 +924,9 @@ function App() {
 
           <div className="services-header">
 
-            <p className="eyebrow">
-              THE COLLECTION
-            </p>
+            <EditableText path="tshirtsSection.eyebrow" as="p" className="eyebrow" />
 
-
-            <h2>
-              T-Shirts made
-              <br />
-              to be seen.
-            </h2>
+            <EditableText path="tshirtsSection.heading" as="h2" preLine />
 
           </div>
 
@@ -978,23 +1013,11 @@ function App() {
 
           <div className="cta-content">
 
-            <p className="eyebrow">
-              READY TO EXPRESS YOURSELF?
-            </p>
+            <EditableText path="cta.eyebrow" as="p" className="eyebrow" />
 
+            <EditableText path="cta.heading" as="h2" preLine />
 
-            <h2>
-              Find your
-              <br />
-              expression.
-            </h2>
-
-
-            <p>
-              See something you like? Contact Kisetsu
-              Expressions directly and let's get your
-              T-shirt ready.
-            </p>
+            <EditableText path="cta.description" as="p" />
 
 
             <a
@@ -1029,11 +1052,7 @@ function App() {
 
             <div>
 
-              <h2>
-                Let's talk
-                <br />
-                T-shirts.
-              </h2>
+              <EditableText path="contact.heading" as="h2" preLine />
 
             </div>
 
@@ -1246,7 +1265,10 @@ function App() {
       {showPaintingsPanel ? (
         <ArtworkPanel
           type="painting"
-          artworks={paintings}
+          artworks={visiblePaintings}
+          canEdit={canEdit}
+          onAddArtwork={() => setEditingPainting({})}
+          onEditArtwork={(artwork) => setEditingPainting(paintings.find((item) => item.id === artwork.id) || {})}
           selectedArtwork={selectedPainting}
           onSelectArtwork={setSelectedPainting}
           onClose={() => {
@@ -1292,9 +1314,35 @@ function App() {
 
       ) : null}
 
+      {/* =========================
+          PAINTING EDITOR (admin only)
+      ========================== */}
+
+      {editingPainting ? (
+        <PaintingEditor
+          painting={editingPainting.id ? editingPainting : null}
+          onClose={() => setEditingPainting(null)}
+          onSaved={() => {
+            setEditingPainting(null)
+            reloadPaintings()
+          }}
+          onDeleted={() => {
+            setEditingPainting(null)
+            if (selectedPainting) setSelectedPainting(null)
+            reloadPaintings()
+          }}
+        />
+      ) : null}
+
     </div>
   )
 }
 
-
-export default App
+export default function App({ adminMode = false }) {
+  return (
+    <EditorProvider adminMode={adminMode}>
+      <AdminChrome />
+      <SiteBody />
+    </EditorProvider>
+  )
+}

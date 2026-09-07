@@ -61,3 +61,4 @@ Add the **paintings catalogue** next. It is the highest-value Phase 2 addition: 
 | 2026-08-29 | Added this roadmap, workflow, and decision record. |
 | 2026-08-29 | Completed the Phase 2.1 T-shirt pricing update: adult AED 60, kids AED 55; size category and size are required for orders. |
 | 2026-08-30 | Added the hero artwork, automatic feature carousel, and dedicated paintings, student-art, and workshop sections. |
+| 2026-09-07 | Replaced the separate `/admin` dashboard with an in-place editor: `/admin` now renders the same public website, and an approved admin can edit text, typography/colors, images, and paintings directly on the page via a small floating toolbar. Paintings moved from a single hard-coded placeholder to a real Supabase `paintings` table with full add/edit/delete and RLS. Added `supabase/paintings-and-editor-update.sql` for the new table and a missing storage delete policy. |
