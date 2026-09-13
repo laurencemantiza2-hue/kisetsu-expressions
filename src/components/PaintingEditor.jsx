@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createPainting, deleteImageByUrl, deletePainting, updatePainting, uploadPaintingImage } from '../lib/paintings.js'
+import { ITEM_TYPES, createPainting, deleteImageByUrl, deletePainting, updatePainting, uploadPaintingImage } from '../lib/paintings.js'
 
 const STATUS_OPTIONS = [
   { value: 'available', label: 'Available' },
@@ -8,8 +8,17 @@ const STATUS_OPTIONS = [
   { value: 'hidden', label: 'Hidden from website' },
 ]
 
-export default function PaintingEditor({ painting, onClose, onSaved, onDeleted }) {
+// Per item-type copy so the same modal/editor works for Paintings, Student
+// Paintings, and T-Shirts without duplicating this component three times.
+const ITEM_TYPE_LABELS = {
+  [ITEM_TYPES.PAINTING]: { noun: 'painting', categoryLabel: 'Category', categoryPlaceholder: 'e.g. Landscape', folder: 'paintings' },
+  [ITEM_TYPES.STUDENT_PAINTING]: { noun: 'student painting', categoryLabel: 'Category', categoryPlaceholder: 'e.g. Age group / class', folder: 'student-paintings' },
+  [ITEM_TYPES.TSHIRT]: { noun: 'T-shirt', categoryLabel: 'Print / style note', categoryPlaceholder: 'e.g. Black tee, red print', folder: 'tshirts' },
+}
+
+export default function PaintingEditor({ painting, itemType = ITEM_TYPES.PAINTING, onClose, onSaved, onDeleted }) {
   const isNew = !painting
+  const labels = ITEM_TYPE_LABELS[itemType] || ITEM_TYPE_LABELS[ITEM_TYPES.PAINTING]
   const [form, setForm] = useState({
     title: painting?.title || '',
     description: painting?.description || '',
@@ -33,7 +42,7 @@ export default function PaintingEditor({ painting, onClose, onSaved, onDeleted }
     setUploading(true)
     setError('')
     try {
-      const { url } = await uploadPaintingImage(file)
+      const { url } = await uploadPaintingImage(file, labels.folder)
       setField('image_url', url)
     } catch (uploadError) {
       setError(uploadError.message)
@@ -47,7 +56,7 @@ export default function PaintingEditor({ painting, onClose, onSaved, onDeleted }
     setError('')
     try {
       if (isNew) {
-        const created = await createPainting(form)
+        const created = await createPainting({ ...form, item_type: itemType })
         onSaved(created)
       } else {
         const updated = await updatePainting(painting.id, form)
@@ -107,9 +116,9 @@ export default function PaintingEditor({ painting, onClose, onSaved, onDeleted }
         }}
       >
         <p style={{ fontSize: 12, letterSpacing: '.12em', fontWeight: 800, color: '#123b5d', margin: '0 0 6px' }}>
-          {isNew ? 'ADD PAINTING' : 'EDIT PAINTING'}
+          {isNew ? `ADD ${labels.noun.toUpperCase()}` : `EDIT ${labels.noun.toUpperCase()}`}
         </p>
-        <h2 style={{ margin: '0 0 20px' }}>{isNew ? 'New painting' : painting.title}</h2>
+        <h2 style={{ margin: '0 0 20px' }}>{isNew ? `New ${labels.noun}` : painting.title}</h2>
 
         <div style={{ display: 'grid', gap: 16 }}>
           <div>
@@ -153,11 +162,11 @@ export default function PaintingEditor({ painting, onClose, onSaved, onDeleted }
             </label>
 
             <label style={{ fontSize: 13, fontWeight: 700, color: '#123b5d' }}>
-              Category
+              {labels.categoryLabel}
               <input
                 value={form.category}
                 onChange={(event) => setField('category', event.target.value)}
-                placeholder="e.g. Landscape"
+                placeholder={labels.categoryPlaceholder}
                 style={inputStyle}
               />
             </label>
@@ -178,7 +187,7 @@ export default function PaintingEditor({ painting, onClose, onSaved, onDeleted }
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24, gap: 12, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 10 }}>
             <button type="button" className="button button-primary" onClick={handleSave} disabled={saving || uploading}>
-              {saving ? 'Saving…' : 'Save painting'}
+              {saving ? 'Saving…' : `Save ${labels.noun}`}
             </button>
             <button type="button" className="button button-secondary" onClick={onClose} disabled={saving}>
               Cancel
@@ -191,7 +200,7 @@ export default function PaintingEditor({ painting, onClose, onSaved, onDeleted }
               disabled={saving}
               style={{ background: 'transparent', border: '1px solid #b22222', color: '#b22222', borderRadius: 4, padding: '9px 16px', cursor: 'pointer', fontWeight: 700 }}
             >
-              Delete painting
+              Delete {labels.noun}
             </button>
           )}
         </div>

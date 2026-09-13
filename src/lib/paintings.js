@@ -1,9 +1,20 @@
 import { supabase } from '../supabase.js'
 
-export async function fetchPaintings() {
+// The `paintings` table holds three catalogs, distinguished by `item_type`:
+// 'painting' (default, matches the original behaviour), 'student_painting',
+// and 'tshirt'. This reuses the existing table/storage/RLS setup instead of
+// creating duplicate tables for each catalog.
+export const ITEM_TYPES = {
+  PAINTING: 'painting',
+  STUDENT_PAINTING: 'student_painting',
+  TSHIRT: 'tshirt',
+}
+
+export async function fetchPaintings(itemType = ITEM_TYPES.PAINTING) {
   const { data, error } = await supabase
     .from('paintings')
     .select('*')
+    .eq('item_type', itemType)
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true })
   if (error) throw error
@@ -21,6 +32,7 @@ export async function createPainting(values) {
       status: values.status || 'available',
       image_url: values.image_url || null,
       sort_order: values.sort_order ?? 0,
+      item_type: values.item_type || ITEM_TYPES.PAINTING,
     })
     .select()
     .single()
@@ -53,8 +65,8 @@ export async function uploadSiteImage(file, folder = 'site') {
   return { path, url: data.publicUrl }
 }
 
-export async function uploadPaintingImage(file) {
-  return uploadSiteImage(file, 'paintings')
+export async function uploadPaintingImage(file, folder = 'paintings') {
+  return uploadSiteImage(file, folder)
 }
 
 export async function deleteImageByUrl(url) {

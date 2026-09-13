@@ -403,6 +403,8 @@ a {
   overflow: hidden;
 
   background: #eee8dc;
+
+  position: relative;
 }
 
 .tshirt-image img {

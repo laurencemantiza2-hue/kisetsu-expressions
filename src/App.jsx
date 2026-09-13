@@ -17,7 +17,7 @@ import { EditorProvider, useEditor } from './EditorContext.jsx'
 import { EditableText, EditableImage } from './components/Editable.jsx'
 import AdminChrome from './components/AdminChrome.jsx'
 import PaintingEditor from './components/PaintingEditor.jsx'
-import { fetchPaintings, uploadSiteImage } from './lib/paintings.js'
+import { ITEM_TYPES, fetchPaintings, uploadSiteImage } from './lib/paintings.js'
 
 
 function TshirtSwapImage({ primary, altImage, name }) {
@@ -50,10 +50,14 @@ function ArtworkPanel({
   canEdit,
   onAddArtwork,
   onEditArtwork,
+  addItemLabel,
 }) {
   const isSelected = Boolean(selectedArtwork)
   const title = type === 'painting' ? 'Paintings' : 'Student Art'
   const eyebrow = type === 'painting' ? 'ORIGINAL PAINTINGS' : 'STUDENT ART'
+  // Editing is available for any catalog whose parent passed edit handlers,
+  // not just paintings — the caller decides by passing canEdit/onAddArtwork.
+  const canManage = canEdit && Boolean(onAddArtwork) && Boolean(onEditArtwork)
 
   const handleDeliveryChoice = (method) => {
     if (!selectedArtwork) return
@@ -186,7 +190,7 @@ function ArtworkPanel({
                     </div>
                   </button>
 
-                  {canEdit && type === 'painting' ? (
+                  {canManage ? (
                     <button
                       type="button"
                       onClick={(event) => {
@@ -212,7 +216,7 @@ function ArtworkPanel({
                 </div>
               ))}
 
-              {canEdit && type === 'painting' ? (
+              {canManage ? (
                 <button
                   type="button"
                   onClick={() => onAddArtwork()}
@@ -229,7 +233,7 @@ function ArtworkPanel({
                     justifyContent: 'center',
                   }}
                 >
-                  + Add painting
+                  + Add {addItemLabel || 'item'}
                 </button>
               ) : null}
             </div>
@@ -253,7 +257,7 @@ function ArtworkPanel({
               ← Back to {title}
             </button>
 
-            {canEdit && type === 'painting' ? (
+            {canManage ? (
               <button
                 type="button"
                 onClick={() => onEditArtwork(selectedArtwork)}
@@ -270,7 +274,7 @@ function ArtworkPanel({
                   marginBottom: 24,
                 }}
               >
-                Edit this painting
+                Edit this {addItemLabel || 'item'}
               </button>
             ) : null}
 
@@ -413,6 +417,10 @@ function SiteBody() {
 
   const [paintings, setPaintings] = useState([])
   const [editingPainting, setEditingPainting] = useState(null) // painting object, or {} for "new", or null for closed
+  const [studentPaintings, setStudentPaintings] = useState([])
+  const [editingStudentPainting, setEditingStudentPainting] = useState(null)
+  const [tshirtProducts, setTshirtProducts] = useState([])
+  const [editingTshirt, setEditingTshirt] = useState(null)
   const [heroUploading, setHeroUploading] = useState(false)
   const [featureUploading, setFeatureUploading] = useState(null)
 
@@ -426,12 +434,26 @@ function SiteBody() {
 
   async function reloadPaintings() {
     if (!hasSupabaseConfig) return
-    const rows = await fetchPaintings()
+    const rows = await fetchPaintings(ITEM_TYPES.PAINTING)
     setPaintings(rows)
+  }
+
+  async function reloadStudentPaintings() {
+    if (!hasSupabaseConfig) return
+    const rows = await fetchPaintings(ITEM_TYPES.STUDENT_PAINTING)
+    setStudentPaintings(rows)
+  }
+
+  async function reloadTshirtProducts() {
+    if (!hasSupabaseConfig) return
+    const rows = await fetchPaintings(ITEM_TYPES.TSHIRT)
+    setTshirtProducts(rows)
   }
 
   useEffect(() => {
     reloadPaintings()
+    reloadStudentPaintings()
+    reloadTshirtProducts()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -449,16 +471,17 @@ function SiteBody() {
       status: painting.status,
     }))
 
-  const studentArt = [
-    {
-      id: 'student-art-01',
-      image: siteContent.features[2].image,
-      name: 'Student Artwork',
-      description: 'A student-created artwork celebrating creativity, confidence, and individuality.',
-      size: '',
-      price: '',
-    },
-  ]
+  const studentArt = studentPaintings
+    .filter((item) => canEdit || item.status !== 'hidden')
+    .map((item) => ({
+      id: item.id,
+      image: item.image_url || siteContent.features[2].image,
+      name: item.title,
+      description: item.description,
+      size: item.category,
+      price: item.price_text,
+      status: item.status,
+    }))
 
   const features = siteContent.features.map((feature, index) => ({
     ...feature,
@@ -497,7 +520,7 @@ function SiteBody() {
   }
 
 
-  const tshirts = [
+  const staticTshirts = [
     {
       number: '01',
       image: tshirt01,
@@ -542,6 +565,26 @@ function SiteBody() {
       ],
     },
   ]
+
+  // T-shirts added through the admin dashboard are appended after the
+  // original four static designs above, which keep their existing
+  // hover/print-color behaviour untouched.
+  const dynamicTshirts = tshirtProducts
+    .filter((item) => canEdit || item.status !== 'hidden')
+    .map((item) => ({
+      id: item.id,
+      number: `db-${item.id}`,
+      image: item.image_url || tshirt01,
+      name: item.title,
+      description: item.description,
+      priceText: item.price_text,
+      category: item.category,
+      status: item.status,
+      isDynamic: true,
+      raw: item,
+    }))
+
+  const tshirts = [...staticTshirts, ...dynamicTshirts]
 
 
   function openProductModal(shirt) {
@@ -962,6 +1005,30 @@ function SiteBody() {
 
                   )}
 
+                  {canEdit && shirt.isDynamic ? (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        setEditingTshirt(shirt.raw)
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: 10,
+                        right: 10,
+                        background: 'rgba(18,59,93,.88)',
+                        color: '#fff',
+                        border: 0,
+                        borderRadius: 999,
+                        padding: '6px 12px',
+                        fontSize: 12,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Edit
+                    </button>
+                  ) : null}
+
                 </div>
 
 
@@ -999,6 +1066,28 @@ function SiteBody() {
               </article>
 
             ))}
+
+            {canEdit ? (
+              <button
+                type="button"
+                onClick={() => setEditingTshirt({})}
+                className="tshirt-card"
+                style={{
+                  border: '2px dashed rgba(18,59,93,.4)',
+                  background: 'rgba(18,59,93,.04)',
+                  color: '#123b5d',
+                  cursor: 'pointer',
+                  fontSize: 15,
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: 220,
+                }}
+              >
+                + Add T-shirt
+              </button>
+            ) : null}
 
           </div>
 
@@ -1267,6 +1356,7 @@ function SiteBody() {
           type="painting"
           artworks={visiblePaintings}
           canEdit={canEdit}
+          addItemLabel="painting"
           onAddArtwork={() => setEditingPainting({})}
           onEditArtwork={(artwork) => setEditingPainting(paintings.find((item) => item.id === artwork.id) || {})}
           selectedArtwork={selectedPainting}
@@ -1288,6 +1378,10 @@ function SiteBody() {
         <ArtworkPanel
           type="student"
           artworks={studentArt}
+          canEdit={canEdit}
+          addItemLabel="student painting"
+          onAddArtwork={() => setEditingStudentPainting({})}
+          onEditArtwork={(artwork) => setEditingStudentPainting(studentPaintings.find((item) => item.id === artwork.id) || {})}
           selectedArtwork={selectedStudentArt}
           onSelectArtwork={setSelectedStudentArt}
           onClose={() => {
@@ -1321,6 +1415,7 @@ function SiteBody() {
       {editingPainting ? (
         <PaintingEditor
           painting={editingPainting.id ? editingPainting : null}
+          itemType={ITEM_TYPES.PAINTING}
           onClose={() => setEditingPainting(null)}
           onSaved={() => {
             setEditingPainting(null)
@@ -1334,6 +1429,47 @@ function SiteBody() {
         />
       ) : null}
 
+      {/* =========================
+          STUDENT PAINTING EDITOR (admin only)
+      ========================== */}
+
+      {editingStudentPainting ? (
+        <PaintingEditor
+          painting={editingStudentPainting.id ? editingStudentPainting : null}
+          itemType={ITEM_TYPES.STUDENT_PAINTING}
+          onClose={() => setEditingStudentPainting(null)}
+          onSaved={() => {
+            setEditingStudentPainting(null)
+            reloadStudentPaintings()
+          }}
+          onDeleted={() => {
+            setEditingStudentPainting(null)
+            if (selectedStudentArt) setSelectedStudentArt(null)
+            reloadStudentPaintings()
+          }}
+        />
+      ) : null}
+
+      {/* =========================
+          T-SHIRT EDITOR (admin only)
+      ========================== */}
+
+      {editingTshirt ? (
+        <PaintingEditor
+          painting={editingTshirt.id ? editingTshirt : null}
+          itemType={ITEM_TYPES.TSHIRT}
+          onClose={() => setEditingTshirt(null)}
+          onSaved={() => {
+            setEditingTshirt(null)
+            reloadTshirtProducts()
+          }}
+          onDeleted={() => {
+            setEditingTshirt(null)
+            reloadTshirtProducts()
+          }}
+        />
+      ) : null}
+
     </div>
   )
 }
@@ -1341,7 +1477,7 @@ function SiteBody() {
 export default function App({ adminMode = false }) {
   return (
     <EditorProvider adminMode={adminMode}>
-      <AdminChrome />
+      <AdminChrome adminMode={adminMode} />
       <SiteBody />
     </EditorProvider>
   )
