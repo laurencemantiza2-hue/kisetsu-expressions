@@ -1,0 +1,514 @@
+diff --git a/src/App.css b/src/App.css
+index a74407c..28fb039 100644
+--- a/src/App.css
++++ b/src/App.css
+@@ -403,6 +403,8 @@ a {
+   overflow: hidden;
+ 
+   background: #eee8dc;
++
++  position: relative;
+ }
+ 
+ .tshirt-image img {
+diff --git a/src/App.jsx b/src/App.jsx
+index b25b8a5..7a924fc 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -17,7 +17,7 @@ import { EditorProvider, useEditor } from './EditorContext.jsx'
+ import { EditableText, EditableImage } from './components/Editable.jsx'
+ import AdminChrome from './components/AdminChrome.jsx'
+ import PaintingEditor from './components/PaintingEditor.jsx'
+-import { fetchPaintings, uploadSiteImage } from './lib/paintings.js'
++import { ITEM_TYPES, fetchPaintings, uploadSiteImage } from './lib/paintings.js'
+ 
+ 
+ function TshirtSwapImage({ primary, altImage, name }) {
+@@ -50,10 +50,14 @@ function ArtworkPanel({
+   canEdit,
+   onAddArtwork,
+   onEditArtwork,
++  addItemLabel,
+ }) {
+   const isSelected = Boolean(selectedArtwork)
+   const title = type === 'painting' ? 'Paintings' : 'Student Art'
+   const eyebrow = type === 'painting' ? 'ORIGINAL PAINTINGS' : 'STUDENT ART'
++  // Editing is available for any catalog whose parent passed edit handlers,
++  // not just paintings — the caller decides by passing canEdit/onAddArtwork.
++  const canManage = canEdit && Boolean(onAddArtwork) && Boolean(onEditArtwork)
+ 
+   const handleDeliveryChoice = (method) => {
+     if (!selectedArtwork) return
+@@ -186,7 +190,7 @@ function ArtworkPanel({
+                     </div>
+                   </button>
+ 
+-                  {canEdit && type === 'painting' ? (
++                  {canManage ? (
+                     <button
+                       type="button"
+                       onClick={(event) => {
+@@ -212,7 +216,7 @@ function ArtworkPanel({
+                 </div>
+               ))}
+ 
+-              {canEdit && type === 'painting' ? (
++              {canManage ? (
+                 <button
+                   type="button"
+                   onClick={() => onAddArtwork()}
+@@ -229,7 +233,7 @@ function ArtworkPanel({
+                     justifyContent: 'center',
+                   }}
+                 >
+-                  + Add painting
++                  + Add {addItemLabel || 'item'}
+                 </button>
+               ) : null}
+             </div>
+@@ -253,7 +257,7 @@ function ArtworkPanel({
+               ← Back to {title}
+             </button>
+ 
+-            {canEdit && type === 'painting' ? (
++            {canManage ? (
+               <button
+                 type="button"
+                 onClick={() => onEditArtwork(selectedArtwork)}
+@@ -270,7 +274,7 @@ function ArtworkPanel({
+                   marginBottom: 24,
+                 }}
+               >
+-                Edit this painting
++                Edit this {addItemLabel || 'item'}
+               </button>
+             ) : null}
+ 
+@@ -413,6 +417,10 @@ function SiteBody() {
+ 
+   const [paintings, setPaintings] = useState([])
+   const [editingPainting, setEditingPainting] = useState(null) // painting object, or {} for "new", or null for closed
++  const [studentPaintings, setStudentPaintings] = useState([])
++  const [editingStudentPainting, setEditingStudentPainting] = useState(null)
++  const [tshirtProducts, setTshirtProducts] = useState([])
++  const [editingTshirt, setEditingTshirt] = useState(null)
+   const [heroUploading, setHeroUploading] = useState(false)
+   const [featureUploading, setFeatureUploading] = useState(null)
+ 
+@@ -426,12 +434,26 @@ function SiteBody() {
+ 
+   async function reloadPaintings() {
+     if (!hasSupabaseConfig) return
+-    const rows = await fetchPaintings()
++    const rows = await fetchPaintings(ITEM_TYPES.PAINTING)
+     setPaintings(rows)
+   }
+ 
++  async function reloadStudentPaintings() {
++    if (!hasSupabaseConfig) return
++    const rows = await fetchPaintings(ITEM_TYPES.STUDENT_PAINTING)
++    setStudentPaintings(rows)
++  }
++
++  async function reloadTshirtProducts() {
++    if (!hasSupabaseConfig) return
++    const rows = await fetchPaintings(ITEM_TYPES.TSHIRT)
++    setTshirtProducts(rows)
++  }
++
+   useEffect(() => {
+     reloadPaintings()
++    reloadStudentPaintings()
++    reloadTshirtProducts()
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [])
+ 
+@@ -449,16 +471,17 @@ function SiteBody() {
+       status: painting.status,
+     }))
+ 
+-  const studentArt = [
+-    {
+-      id: 'student-art-01',
+-      image: siteContent.features[2].image,
+-      name: 'Student Artwork',
+-      description: 'A student-created artwork celebrating creativity, confidence, and individuality.',
+-      size: '',
+-      price: '',
+-    },
+-  ]
++  const studentArt = studentPaintings
++    .filter((item) => canEdit || item.status !== 'hidden')
++    .map((item) => ({
++      id: item.id,
++      image: item.image_url || siteContent.features[2].image,
++      name: item.title,
++      description: item.description,
++      size: item.category,
++      price: item.price_text,
++      status: item.status,
++    }))
+ 
+   const features = siteContent.features.map((feature, index) => ({
+     ...feature,
+@@ -497,7 +520,7 @@ function SiteBody() {
+   }
+ 
+ 
+-  const tshirts = [
++  const staticTshirts = [
+     {
+       number: '01',
+       image: tshirt01,
+@@ -543,6 +566,26 @@ function SiteBody() {
+     },
+   ]
+ 
++  // T-shirts added through the admin dashboard are appended after the
++  // original four static designs above, which keep their existing
++  // hover/print-color behaviour untouched.
++  const dynamicTshirts = tshirtProducts
++    .filter((item) => canEdit || item.status !== 'hidden')
++    .map((item) => ({
++      id: item.id,
++      number: `db-${item.id}`,
++      image: item.image_url || tshirt01,
++      name: item.title,
++      description: item.description,
++      priceText: item.price_text,
++      category: item.category,
++      status: item.status,
++      isDynamic: true,
++      raw: item,
++    }))
++
++  const tshirts = [...staticTshirts, ...dynamicTshirts]
++
+ 
+   function openProductModal(shirt) {
+     setSelectedProduct(shirt)
+@@ -962,6 +1005,30 @@ function SiteBody() {
+ 
+                   )}
+ 
++                  {canEdit && shirt.isDynamic ? (
++                    <button
++                      type="button"
++                      onClick={(event) => {
++                        event.stopPropagation()
++                        setEditingTshirt(shirt.raw)
++                      }}
++                      style={{
++                        position: 'absolute',
++                        top: 10,
++                        right: 10,
++                        background: 'rgba(18,59,93,.88)',
++                        color: '#fff',
++                        border: 0,
++                        borderRadius: 999,
++                        padding: '6px 12px',
++                        fontSize: 12,
++                        cursor: 'pointer',
++                      }}
++                    >
++                      Edit
++                    </button>
++                  ) : null}
++
+                 </div>
+ 
+ 
+@@ -1000,6 +1067,28 @@ function SiteBody() {
+ 
+             ))}
+ 
++            {canEdit ? (
++              <button
++                type="button"
++                onClick={() => setEditingTshirt({})}
++                className="tshirt-card"
++                style={{
++                  border: '2px dashed rgba(18,59,93,.4)',
++                  background: 'rgba(18,59,93,.04)',
++                  color: '#123b5d',
++                  cursor: 'pointer',
++                  fontSize: 15,
++                  fontWeight: 700,
++                  display: 'flex',
++                  alignItems: 'center',
++                  justifyContent: 'center',
++                  minHeight: 220,
++                }}
++              >
++                + Add T-shirt
++              </button>
++            ) : null}
++
+           </div>
+ 
+         </section>
+@@ -1267,6 +1356,7 @@ function SiteBody() {
+           type="painting"
+           artworks={visiblePaintings}
+           canEdit={canEdit}
++          addItemLabel="painting"
+           onAddArtwork={() => setEditingPainting({})}
+           onEditArtwork={(artwork) => setEditingPainting(paintings.find((item) => item.id === artwork.id) || {})}
+           selectedArtwork={selectedPainting}
+@@ -1288,6 +1378,10 @@ function SiteBody() {
+         <ArtworkPanel
+           type="student"
+           artworks={studentArt}
++          canEdit={canEdit}
++          addItemLabel="student painting"
++          onAddArtwork={() => setEditingStudentPainting({})}
++          onEditArtwork={(artwork) => setEditingStudentPainting(studentPaintings.find((item) => item.id === artwork.id) || {})}
+           selectedArtwork={selectedStudentArt}
+           onSelectArtwork={setSelectedStudentArt}
+           onClose={() => {
+@@ -1321,6 +1415,7 @@ function SiteBody() {
+       {editingPainting ? (
+         <PaintingEditor
+           painting={editingPainting.id ? editingPainting : null}
++          itemType={ITEM_TYPES.PAINTING}
+           onClose={() => setEditingPainting(null)}
+           onSaved={() => {
+             setEditingPainting(null)
+@@ -1334,6 +1429,47 @@ function SiteBody() {
+         />
+       ) : null}
+ 
++      {/* =========================
++          STUDENT PAINTING EDITOR (admin only)
++      ========================== */}
++
++      {editingStudentPainting ? (
++        <PaintingEditor
++          painting={editingStudentPainting.id ? editingStudentPainting : null}
++          itemType={ITEM_TYPES.STUDENT_PAINTING}
++          onClose={() => setEditingStudentPainting(null)}
++          onSaved={() => {
++            setEditingStudentPainting(null)
++            reloadStudentPaintings()
++          }}
++          onDeleted={() => {
++            setEditingStudentPainting(null)
++            if (selectedStudentArt) setSelectedStudentArt(null)
++            reloadStudentPaintings()
++          }}
++        />
++      ) : null}
++
++      {/* =========================
++          T-SHIRT EDITOR (admin only)
++      ========================== */}
++
++      {editingTshirt ? (
++        <PaintingEditor
++          painting={editingTshirt.id ? editingTshirt : null}
++          itemType={ITEM_TYPES.TSHIRT}
++          onClose={() => setEditingTshirt(null)}
++          onSaved={() => {
++            setEditingTshirt(null)
++            reloadTshirtProducts()
++          }}
++          onDeleted={() => {
++            setEditingTshirt(null)
++            reloadTshirtProducts()
++          }}
++        />
++      ) : null}
++
+     </div>
+   )
+ }
+diff --git a/src/components/AdminChrome.jsx b/src/components/AdminChrome.jsx
+index 5655cd1..47df3c4 100644
+--- a/src/components/AdminChrome.jsx
++++ b/src/components/AdminChrome.jsx
+@@ -18,7 +18,14 @@ const WEIGHT_OPTIONS = [
+ ]
+ 
+ export default function AdminChrome() {
+-  const { canEdit, session, isAdmin, checkingAdmin } = useEditor()
++  const { adminMode, canEdit, session, isAdmin, checkingAdmin } = useEditor()
++
++  // The editor/login UI must only ever mount on the /admin route. Every
++  // check below (session, isAdmin, canEdit) is about *authorization*, not
++  // *routing* — none of them are route-aware, so without this early return
++  // a signed-out visitor on "/" falls through to the same "no session" state
++  // as a signed-out visitor on "/admin" and sees the same sign-in gate.
++  if (!adminMode) return null
+ 
+   if (!hasSupabaseConfig) return <SetupBanner />
+   if (!session) return <SignInGate />
+diff --git a/src/components/PaintingEditor.jsx b/src/components/PaintingEditor.jsx
+index 840fb6c..861fc4f 100644
+--- a/src/components/PaintingEditor.jsx
++++ b/src/components/PaintingEditor.jsx
+@@ -1,5 +1,5 @@
+ import { useState } from 'react'
+-import { createPainting, deleteImageByUrl, deletePainting, updatePainting, uploadPaintingImage } from '../lib/paintings.js'
++import { ITEM_TYPES, createPainting, deleteImageByUrl, deletePainting, updatePainting, uploadPaintingImage } from '../lib/paintings.js'
+ 
+ const STATUS_OPTIONS = [
+   { value: 'available', label: 'Available' },
+@@ -8,8 +8,17 @@ const STATUS_OPTIONS = [
+   { value: 'hidden', label: 'Hidden from website' },
+ ]
+ 
+-export default function PaintingEditor({ painting, onClose, onSaved, onDeleted }) {
++// Per item-type copy so the same modal/editor works for Paintings, Student
++// Paintings, and T-Shirts without duplicating this component three times.
++const ITEM_TYPE_LABELS = {
++  [ITEM_TYPES.PAINTING]: { noun: 'painting', categoryLabel: 'Category', categoryPlaceholder: 'e.g. Landscape', folder: 'paintings' },
++  [ITEM_TYPES.STUDENT_PAINTING]: { noun: 'student painting', categoryLabel: 'Category', categoryPlaceholder: 'e.g. Age group / class', folder: 'student-paintings' },
++  [ITEM_TYPES.TSHIRT]: { noun: 'T-shirt', categoryLabel: 'Print / style note', categoryPlaceholder: 'e.g. Black tee, red print', folder: 'tshirts' },
++}
++
++export default function PaintingEditor({ painting, itemType = ITEM_TYPES.PAINTING, onClose, onSaved, onDeleted }) {
+   const isNew = !painting
++  const labels = ITEM_TYPE_LABELS[itemType] || ITEM_TYPE_LABELS[ITEM_TYPES.PAINTING]
+   const [form, setForm] = useState({
+     title: painting?.title || '',
+     description: painting?.description || '',
+@@ -33,7 +42,7 @@ export default function PaintingEditor({ painting, onClose, onSaved, onDeleted }
+     setUploading(true)
+     setError('')
+     try {
+-      const { url } = await uploadPaintingImage(file)
++      const { url } = await uploadPaintingImage(file, labels.folder)
+       setField('image_url', url)
+     } catch (uploadError) {
+       setError(uploadError.message)
+@@ -47,7 +56,7 @@ export default function PaintingEditor({ painting, onClose, onSaved, onDeleted }
+     setError('')
+     try {
+       if (isNew) {
+-        const created = await createPainting(form)
++        const created = await createPainting({ ...form, item_type: itemType })
+         onSaved(created)
+       } else {
+         const updated = await updatePainting(painting.id, form)
+@@ -107,9 +116,9 @@ export default function PaintingEditor({ painting, onClose, onSaved, onDeleted }
+         }}
+       >
+         <p style={{ fontSize: 12, letterSpacing: '.12em', fontWeight: 800, color: '#123b5d', margin: '0 0 6px' }}>
+-          {isNew ? 'ADD PAINTING' : 'EDIT PAINTING'}
++          {isNew ? `ADD ${labels.noun.toUpperCase()}` : `EDIT ${labels.noun.toUpperCase()}`}
+         </p>
+-        <h2 style={{ margin: '0 0 20px' }}>{isNew ? 'New painting' : painting.title}</h2>
++        <h2 style={{ margin: '0 0 20px' }}>{isNew ? `New ${labels.noun}` : painting.title}</h2>
+ 
+         <div style={{ display: 'grid', gap: 16 }}>
+           <div>
+@@ -153,11 +162,11 @@ export default function PaintingEditor({ painting, onClose, onSaved, onDeleted }
+             </label>
+ 
+             <label style={{ fontSize: 13, fontWeight: 700, color: '#123b5d' }}>
+-              Category
++              {labels.categoryLabel}
+               <input
+                 value={form.category}
+                 onChange={(event) => setField('category', event.target.value)}
+-                placeholder="e.g. Landscape"
++                placeholder={labels.categoryPlaceholder}
+                 style={inputStyle}
+               />
+             </label>
+@@ -178,7 +187,7 @@ export default function PaintingEditor({ painting, onClose, onSaved, onDeleted }
+         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24, gap: 12, flexWrap: 'wrap' }}>
+           <div style={{ display: 'flex', gap: 10 }}>
+             <button type="button" className="button button-primary" onClick={handleSave} disabled={saving || uploading}>
+-              {saving ? 'Saving…' : 'Save painting'}
++              {saving ? 'Saving…' : `Save ${labels.noun}`}
+             </button>
+             <button type="button" className="button button-secondary" onClick={onClose} disabled={saving}>
+               Cancel
+@@ -191,7 +200,7 @@ export default function PaintingEditor({ painting, onClose, onSaved, onDeleted }
+               disabled={saving}
+               style={{ background: 'transparent', border: '1px solid #b22222', color: '#b22222', borderRadius: 4, padding: '9px 16px', cursor: 'pointer', fontWeight: 700 }}
+             >
+-              Delete painting
++              Delete {labels.noun}
+             </button>
+           )}
+         </div>
+diff --git a/src/lib/paintings.js b/src/lib/paintings.js
+index 7fac515..189a60a 100644
+--- a/src/lib/paintings.js
++++ b/src/lib/paintings.js
+@@ -1,9 +1,20 @@
+ import { supabase } from '../supabase.js'
+ 
+-export async function fetchPaintings() {
++// The `paintings` table holds three catalogs, distinguished by `item_type`:
++// 'painting' (default, matches the original behaviour), 'student_painting',
++// and 'tshirt'. This reuses the existing table/storage/RLS setup instead of
++// creating duplicate tables for each catalog.
++export const ITEM_TYPES = {
++  PAINTING: 'painting',
++  STUDENT_PAINTING: 'student_painting',
++  TSHIRT: 'tshirt',
++}
++
++export async function fetchPaintings(itemType = ITEM_TYPES.PAINTING) {
+   const { data, error } = await supabase
+     .from('paintings')
+     .select('*')
++    .eq('item_type', itemType)
+     .order('sort_order', { ascending: true })
+     .order('created_at', { ascending: true })
+   if (error) throw error
+@@ -21,6 +32,7 @@ export async function createPainting(values) {
+       status: values.status || 'available',
+       image_url: values.image_url || null,
+       sort_order: values.sort_order ?? 0,
++      item_type: values.item_type || ITEM_TYPES.PAINTING,
+     })
+     .select()
+     .single()
+@@ -53,8 +65,8 @@ export async function uploadSiteImage(file, folder = 'site') {
+   return { path, url: data.publicUrl }
+ }
+ 
+-export async function uploadPaintingImage(file) {
+-  return uploadSiteImage(file, 'paintings')
++export async function uploadPaintingImage(file, folder = 'paintings') {
++  return uploadSiteImage(file, folder)
+ }
+ 
+ export async function deleteImageByUrl(url) {
+diff --git a/supabase/product-types-update.sql b/supabase/product-types-update.sql
+new file mode 100644
+index 0000000..165aaa4
+--- /dev/null
++++ b/supabase/product-types-update.sql
+@@ -0,0 +1,27 @@
++-- Run this in Supabase Dashboard > SQL Editor AFTER setup.sql and
++-- paintings-and-editor-update.sql have already been run.
++-- Safe to run more than once.
++--
++-- WHY: the app already has a working, RLS-protected `paintings` table with
++-- image upload/replace/delete, admin-only writes, and public read access.
++-- Rather than creating separate `student_paintings` / `tshirts` tables (and
++-- duplicating every policy above), this migration adds one `item_type`
++-- column so the same table/storage/RLS setup can hold all three catalogs.
++-- Existing rows default to 'painting', so nothing already on the live site
++-- changes.
++
++alter table public.paintings
++  add column if not exists item_type text not null default 'painting';
++
++alter table public.paintings
++  drop constraint if exists paintings_item_type_check;
++
++alter table public.paintings
++  add constraint paintings_item_type_check
++  check (item_type in ('painting', 'student_painting', 'tshirt'));
++
++create index if not exists paintings_item_type_idx on public.paintings (item_type);
++
++-- No RLS changes are needed: the existing policies on public.paintings and
++-- on the site-images storage bucket already apply per-row / per-file, not
++-- per-category, so they cover student paintings and t-shirts automatically.
