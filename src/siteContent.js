@@ -123,10 +123,37 @@ function deepMerge(base, saved) {
 
 export function mergeSiteContent(savedContent) {
   const merged = deepMerge(defaultSiteContent, savedContent || {})
-  merged.features = defaultSiteContent.features.map((feature) => ({
-    ...feature,
-    ...(savedContent?.features?.find((item) => item.key === feature.key) || {}),
-  }))
+
+  // Saved CMS content may contain old development asset paths
+  // such as "/src/assets/feature-paintings.jpg".
+  // Keep the Vite-imported production asset instead.
+  if (
+    typeof savedContent?.hero?.image === 'string' &&
+    savedContent.hero.image.startsWith('/src/assets/')
+  ) {
+    merged.hero.image = defaultSiteContent.hero.image
+  }
+
+  merged.features = defaultSiteContent.features.map((feature) => {
+    const savedFeature = savedContent?.features?.find(
+      (item) => item.key === feature.key
+    )
+
+    const mergedFeature = {
+      ...feature,
+      ...(savedFeature || {}),
+    }
+
+    if (
+      typeof savedFeature?.image === 'string' &&
+      savedFeature.image.startsWith('/src/assets/')
+    ) {
+      mergedFeature.image = feature.image
+    }
+
+    return mergedFeature
+  })
+
   return merged
 }
 
