@@ -570,19 +570,19 @@ function SiteBody() {
   // original four static designs above, which keep their existing
   // hover/print-color behaviour untouched.
   const dynamicTshirts = tshirtProducts
-    .filter((item) => canEdit || item.status !== 'hidden')
-    .map((item) => ({
-      id: item.id,
-      number: `db-${item.id}`,
-      image: item.image_url || tshirt01,
-      name: item.title,
-      description: item.description,
-      priceText: item.price_text,
-      category: item.category,
-      status: item.status,
-      isDynamic: true,
-      raw: item,
-    }))
+  .filter((item) => canEdit || item.status !== 'hidden')
+  .map((item, index) => ({
+    id: item.id,
+    number: String(staticTshirts.length + index + 1).padStart(2, '0'),
+    image: item.image_url || tshirt01,
+    name: item.title,
+    description: item.description,
+    priceText: item.price_text,
+    category: item.category,
+    status: item.status,
+    isDynamic: true,
+    raw: item,
+  }))
 
   const tshirts = [...staticTshirts, ...dynamicTshirts]
 
