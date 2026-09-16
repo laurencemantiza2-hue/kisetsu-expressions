@@ -413,6 +413,7 @@ function SiteBody() {
   const [showStudentArtPanel, setShowStudentArtPanel] = useState(false)
   const [selectedStudentArt, setSelectedStudentArt] = useState(null)
   const [showWorkshopPanel, setShowWorkshopPanel] = useState(false)
+  const [showPromotionPopup, setShowPromotionPopup] = useState(false)
   const [activeFeature, setActiveFeature] = useState(0)
   const [isFeaturePaused, setIsFeaturePaused] = useState(false)
 
@@ -457,6 +458,53 @@ function SiteBody() {
     reloadTshirtProducts()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Show each enabled promotion popup once per promotion ID.
+  // Admin users do not receive the public promotional popup.
+  useEffect(() => {
+    const promotion = siteContent.promotion
+
+    if (
+      canEdit ||
+      !promotion?.enabled ||
+      !promotion?.showPopup ||
+      !promotion?.id
+    ) {
+      setShowPromotionPopup(false)
+      return
+    }
+
+    const dismissedPromotionId = window.localStorage.getItem(
+      'kisetsu-dismissed-promotion'
+    )
+
+    if (dismissedPromotionId !== promotion.id) {
+      setShowPromotionPopup(true)
+    }
+  }, [
+    canEdit,
+    siteContent.promotion?.enabled,
+    siteContent.promotion?.showPopup,
+    siteContent.promotion?.id,
+  ])
+
+  function closePromotionPopup() {
+    const promotionId = siteContent.promotion?.id
+
+    if (promotionId) {
+      window.localStorage.setItem(
+        'kisetsu-dismissed-promotion',
+        promotionId
+      )
+    }
+
+    setShowPromotionPopup(false)
+  }
+
+  function openPromotionDetails() {
+    setShowPromotionPopup(false)
+    setShowWorkshopPanel(true)
+  }
 
   const heroImage = siteContent.hero.image
 
@@ -651,14 +699,26 @@ function SiteBody() {
 
 
         <a
-          href={whatsappLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="nav-contact"
-        >
-          WhatsApp
-        </a>
-
+  href={whatsappLink}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="nav-contact nav-whatsapp-icon"
+  aria-label="Contact Kisetsu Expressions on WhatsApp"
+  title="WhatsApp"
+>
+  <svg
+    viewBox="0 0 32 32"
+    width="28"
+    height="28"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <path
+  fill="#25D366"
+      d="M16.04 3C9.4 3 4 8.36 4 14.96c0 2.62.86 5.05 2.32 7.02L4.8 27.5l5.68-1.49a12.08 12.08 0 0 0 5.55 1.39h.01C22.68 27.4 28 22.04 28 15.44 28 8.84 22.68 3 16.04 3Zm0 22.36h-.01a10.03 10.03 0 0 1-5.12-1.4l-.37-.22-3.37.88.9-3.28-.24-.38a9.9 9.9 0 0 1-1.53-5.3c0-5.48 4.47-9.94 9.97-9.94 5.5 0 9.96 4.46 9.96 9.94 0 5.49-4.46 9.7-10.19 9.7Zm5.47-7.46c-.3-.15-1.76-.86-2.03-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48a9 9 0 0 1-1.66-2.05c-.17-.3-.02-.46.13-.61.14-.13.3-.35.45-.52.15-.18.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.2-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.01-1.04 2.47s1.07 2.87 1.22 3.07c.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.69.63.71.22 1.36.19 1.87.11.57-.08 1.76-.72 2.01-1.41.25-.7.25-1.3.17-1.42-.07-.13-.27-.2-.57-.35Z"
+    />
+  </svg>
+</a>
       </header>
 
 
@@ -719,6 +779,68 @@ function SiteBody() {
           </div>
 
         </section>
+
+
+        {/* =========================
+            CURRENT PROMOTION
+        ========================== */}
+
+        {siteContent.promotion?.enabled &&
+        siteContent.promotion?.showOnHomepage ? (
+          <section
+            className="promotion-section"
+            style={{
+              padding: 'clamp(48px, 7vw, 90px) clamp(20px, 5vw, 72px)',
+              background: '#f5f1e8',
+            }}
+          >
+            <div
+              style={{
+                width: 'min(1180px, 100%)',
+                margin: '0 auto',
+                display: 'grid',
+                gridTemplateColumns: siteContent.promotion.image
+                  ? 'minmax(280px, .9fr) minmax(0, 1.1fr)'
+                  : '1fr',
+                gap: 'clamp(32px, 6vw, 80px)',
+                alignItems: 'center',
+              }}
+            >
+              {siteContent.promotion.image ? (
+                <div
+                  style={{
+                    overflow: 'hidden',
+                    background: '#fff',
+                    boxShadow: '0 20px 60px rgba(0,0,0,.12)',
+                  }}
+                >
+                  <img
+                    src={siteContent.promotion.image}
+                    alt={siteContent.promotion.title || 'Kisetsu Expressions promotion'}
+                    style={{ width: '100%', height: 'auto', display: 'block' }}
+                  />
+                </div>
+              ) : null}
+
+              <div>
+                <p className="eyebrow">WHAT'S HAPPENING AT KISETSU</p>
+                <h2 style={{ margin: '10px 0 18px', maxWidth: 700 }}>
+                  {siteContent.promotion.title}
+                </h2>
+                <p style={{ maxWidth: 650, lineHeight: 1.75, opacity: 0.78, marginBottom: 26 }}>
+                  {siteContent.promotion.description}
+                </p>
+                <button
+                  type="button"
+                  className="button button-primary"
+                  onClick={() => setShowWorkshopPanel(true)}
+                >
+                  {siteContent.promotion.buttonLabel || 'Learn More'}
+                </button>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
 
         {/* =========================
@@ -1391,6 +1513,100 @@ function SiteBody() {
           onBack={() => setSelectedStudentArt(null)}
           createWhatsappLink={createWhatsappLink}
         />
+      ) : null}
+
+      {/* =========================
+          PROMOTION POPUP
+      ========================== */}
+
+      {showPromotionPopup &&
+      siteContent.promotion?.enabled &&
+      siteContent.promotion?.showPopup ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={siteContent.promotion.title || 'Current promotion'}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 2200,
+            background: 'rgba(0, 0, 0, 0.78)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20,
+            overflowY: 'auto',
+          }}
+          onClick={closePromotionPopup}
+        >
+          <div
+            style={{
+              width: 'min(620px, 100%)',
+              maxHeight: 'calc(100vh - 40px)',
+              overflowY: 'auto',
+              position: 'relative',
+              background: '#fff',
+              color: '#111',
+              boxShadow: '0 24px 90px rgba(0,0,0,.4)',
+            }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={closePromotionPopup}
+              aria-label="Close promotion"
+              style={{
+                position: 'absolute',
+                top: 12,
+                right: 12,
+                zIndex: 2,
+                width: 42,
+                height: 42,
+                border: 0,
+                borderRadius: '50%',
+                background: 'rgba(0,0,0,.72)',
+                color: '#fff',
+                fontSize: 26,
+                lineHeight: 1,
+                cursor: 'pointer',
+              }}
+            >
+              ×
+            </button>
+
+            {siteContent.promotion.image ? (
+              <img
+                src={siteContent.promotion.image}
+                alt={siteContent.promotion.title || 'Kisetsu Expressions promotion'}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  height: 'auto',
+                  maxHeight: '70vh',
+                  objectFit: 'contain',
+                  background: '#f5f1e8',
+                }}
+              />
+            ) : null}
+
+            <div style={{ padding: 'clamp(24px, 5vw, 40px)' }}>
+              <p className="eyebrow">KISETSU EXPRESSIONS</p>
+              <h2 style={{ margin: '8px 0 14px' }}>
+                {siteContent.promotion.title}
+              </h2>
+              <p style={{ lineHeight: 1.7, opacity: 0.76, marginBottom: 24 }}>
+                {siteContent.promotion.description}
+              </p>
+              <button
+                type="button"
+                className="button button-primary"
+                onClick={openPromotionDetails}
+              >
+                {siteContent.promotion.buttonLabel || 'Learn More'}
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
 
       {/* =========================

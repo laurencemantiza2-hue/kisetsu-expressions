@@ -881,3 +881,465 @@
       gap: 5px;
     }
   }
+
+
+/* =========================================================
+   PROMOTION MANAGER
+   ========================================================= */
+
+.cms-toolbar-promotion {
+  border: 1px solid rgba(17, 17, 17, 0.16);
+  border-radius: 5px;
+  padding: 8px 12px;
+  background: #fff;
+  color: #111;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.cms-toolbar-promotion:hover {
+  background: #f4f4f4;
+  border-color: rgba(17, 17, 17, 0.3);
+}
+
+.cms-toolbar-promotion.is-active {
+  background: #111;
+  border-color: #111;
+  color: #fff;
+}
+
+.cms-promotion-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 82px 24px 24px;
+  background: rgba(17, 17, 17, 0.48);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.cms-promotion-manager {
+  width: min(980px, 100%);
+  max-height: calc(100vh - 106px);
+  overflow-y: auto;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(17, 17, 17, 0.22);
+  color: #111;
+}
+
+.cms-promotion-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 25px 28px;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.1);
+}
+
+.cms-promotion-kicker {
+  margin: 0 0 7px;
+  color: rgba(17, 17, 17, 0.5);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.cms-promotion-header h2 {
+  margin: 0 0 7px;
+  font-size: 25px;
+  line-height: 1.2;
+}
+
+.cms-promotion-header p:not(.cms-promotion-kicker) {
+  max-width: 620px;
+  margin: 0;
+  color: rgba(17, 17, 17, 0.62);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.cms-promotion-close {
+  flex: 0 0 auto;
+  border: 0;
+  padding: 0 4px;
+  background: transparent;
+  color: #111;
+  cursor: pointer;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.cms-promotion-grid {
+  display: grid;
+  grid-template-columns: minmax(250px, 0.8fr) minmax(320px, 1.2fr);
+  gap: 30px;
+  padding: 28px;
+}
+
+.cms-promotion-poster-column {
+  min-width: 0;
+}
+
+.cms-promotion-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
+  overflow: hidden;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 9px;
+  background: #f5f5f5;
+}
+
+.cms-promotion-preview img {
+  display: block;
+  width: 100%;
+  max-height: 520px;
+  object-fit: contain;
+}
+
+.cms-promotion-empty-poster {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 30px;
+  color: rgba(17, 17, 17, 0.55);
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.cms-promotion-empty-poster strong {
+  color: #111;
+  font-size: 14px;
+}
+
+.cms-promotion-file-input {
+  display: none;
+}
+
+.cms-promotion-upload {
+  width: 100%;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 6px;
+  padding: 11px 16px;
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cms-promotion-upload:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.cms-promotion-help {
+  margin: 10px 0 0;
+  color: rgba(17, 17, 17, 0.55);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.cms-promotion-help code {
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: #f2f2f2;
+}
+
+.cms-promotion-error {
+  margin: 10px 0 0;
+  padding: 9px 10px;
+  border-radius: 5px;
+  background: #fff1f1;
+  color: #8b1d1d;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.cms-promotion-fields {
+  min-width: 0;
+}
+
+.cms-promotion-fields > label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 18px;
+  color: rgba(17, 17, 17, 0.8);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cms-promotion-fields input[type='text'],
+.cms-promotion-fields textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(17, 17, 17, 0.16);
+  border-radius: 6px;
+  padding: 10px 11px;
+  background: #fff;
+  color: #111;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.cms-promotion-fields textarea {
+  min-height: 105px;
+  resize: vertical;
+}
+
+.cms-promotion-fields input[type='text']:focus,
+.cms-promotion-fields textarea:focus {
+  outline: 2px solid rgba(17, 17, 17, 0.1);
+  outline-offset: 1px;
+  border-color: rgba(17, 17, 17, 0.3);
+}
+
+.cms-promotion-toggles {
+  margin-top: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(17, 17, 17, 0.11);
+  border-radius: 8px;
+}
+
+.cms-promotion-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 15px;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.08);
+  cursor: pointer;
+}
+
+.cms-promotion-toggle:last-child {
+  border-bottom: 0;
+}
+
+.cms-promotion-toggle > span:first-child {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cms-promotion-toggle strong {
+  font-size: 12px;
+}
+
+.cms-promotion-toggle small {
+  color: rgba(17, 17, 17, 0.55);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.cms-promotion-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cms-promotion-switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: #d8d8d8;
+  transition: background 0.2s ease;
+}
+
+.cms-promotion-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(17, 17, 17, 0.22);
+  transition: transform 0.2s ease;
+}
+
+.cms-promotion-toggle input:checked + .cms-promotion-switch {
+  background: #111;
+}
+
+.cms-promotion-toggle input:checked + .cms-promotion-switch::after {
+  transform: translateX(16px);
+}
+
+.cms-promotion-toggle input:focus-visible + .cms-promotion-switch {
+  outline: 2px solid #111;
+  outline-offset: 2px;
+}
+
+.cms-promotion-id {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 18px;
+  padding: 12px 14px;
+  border-radius: 7px;
+  background: #f7f7f7;
+}
+
+.cms-promotion-id > span {
+  color: rgba(17, 17, 17, 0.58);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cms-promotion-id code {
+  overflow-wrap: anywhere;
+  color: #111;
+  font-size: 12px;
+}
+
+.cms-promotion-id small {
+  color: rgba(17, 17, 17, 0.52);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.cms-promotion-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 28px;
+  border-top: 1px solid rgba(17, 17, 17, 0.1);
+  background: #fafafa;
+}
+
+.cms-promotion-footer > div:first-child {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.cms-promotion-footer > div:first-child span {
+  color: rgba(17, 17, 17, 0.58);
+}
+
+.cms-promotion-footer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cms-promotion-footer-actions button {
+  border-radius: 6px;
+  padding: 9px 14px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cms-promotion-secondary {
+  border: 1px solid rgba(17, 17, 17, 0.16);
+  background: #fff;
+  color: #111;
+}
+
+.cms-promotion-save {
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
+}
+
+.cms-promotion-save:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+@media (max-width: 760px) {
+  .cms-toolbar-promotion {
+    flex: 1;
+  }
+
+  .cms-promotion-overlay {
+    align-items: flex-start;
+    padding: 116px 10px 10px;
+  }
+
+  .cms-promotion-manager {
+    max-height: calc(100vh - 126px);
+  }
+
+  .cms-promotion-grid {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    padding: 20px;
+  }
+
+  .cms-promotion-preview {
+    min-height: 260px;
+  }
+
+  .cms-promotion-header {
+    padding: 20px;
+  }
+
+  .cms-promotion-footer {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 16px 20px;
+  }
+
+  .cms-promotion-footer-actions {
+    width: 100%;
+  }
+
+  .cms-promotion-footer-actions button {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .cms-toolbar-promotion {
+    width: 100%;
+  }
+
+  .cms-promotion-overlay {
+    padding-top: 160px;
+  }
+
+  .cms-promotion-manager {
+    max-height: calc(100vh - 170px);
+  }
+
+  .cms-promotion-header h2 {
+    font-size: 22px;
+  }
+
+  .cms-promotion-grid {
+    padding: 15px;
+  }
+
+  .cms-promotion-preview {
+    min-height: 220px;
+  }
+}

@@ -105,7 +105,7 @@ export const defaultSiteContent = {
   // different ID can therefore appear again.
   promotion: {
     id: 'arts-drawing-classes-2026',
-    enabled: false,
+    enabled: true,
     showPopup: true,
     showOnHomepage: true,
     title: 'Arts & Drawing Classes',
