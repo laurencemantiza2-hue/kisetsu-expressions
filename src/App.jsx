@@ -412,6 +412,7 @@ function SiteBody() {
   const [selectedPainting, setSelectedPainting] = useState(null)
   const [showStudentArtPanel, setShowStudentArtPanel] = useState(false)
   const [selectedStudentArt, setSelectedStudentArt] = useState(null)
+  const [showWorkshopPanel, setShowWorkshopPanel] = useState(false)
   const [activeFeature, setActiveFeature] = useState(0)
   const [isFeaturePaused, setIsFeaturePaused] = useState(false)
 
@@ -906,14 +907,13 @@ function SiteBody() {
             <EditableText path="workshopsSection.eyebrow" as="p" className="eyebrow" />
             <EditableText path="workshopsSection.heading" as="h2" preLine />
             <EditableText path="workshopsSection.description" as="p" />
-            <a
-              href={createWhatsappLink('Hello Kisetsu Expressions, I would like to plan a creative workshop. Preferred date: __ / Group size: __ / Idea: __')}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
               className="button button-light"
+              onClick={() => setShowWorkshopPanel(true)}
             >
               Plan Your Creative Workshop
-            </a>
+            </button>
           </div>
         </section>
 
@@ -1391,6 +1391,99 @@ function SiteBody() {
           onBack={() => setSelectedStudentArt(null)}
           createWhatsappLink={createWhatsappLink}
         />
+      ) : null}
+
+      {/* =========================
+          WORKSHOP PANEL
+      ========================== */}
+
+      {showWorkshopPanel ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Creative Workshops"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 2100,
+            background: 'rgba(0, 0, 0, 0.72)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 24,
+            overflowY: 'auto',
+          }}
+          onClick={() => setShowWorkshopPanel(false)}
+        >
+          <div
+            style={{
+              width: 'min(760px, 100%)',
+              maxHeight: 'calc(100vh - 48px)',
+              overflowY: 'auto',
+              background: 'var(--site-primary, #123b5d)',
+              color: '#fff',
+              position: 'relative',
+              padding: 'clamp(28px, 5vw, 56px)',
+              boxShadow: '0 24px 80px rgba(0,0,0,.3)',
+            }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setShowWorkshopPanel(false)}
+              aria-label="Close workshop information"
+              style={{
+                position: 'absolute',
+                top: 18,
+                right: 20,
+                border: 0,
+                background: 'transparent',
+                color: '#fff',
+                fontSize: 30,
+                lineHeight: 1,
+                cursor: 'pointer',
+              }}
+            >
+              ×
+            </button>
+
+            <p className="eyebrow">CREATIVE WORKSHOPS</p>
+            <h2 style={{ margin: '8px 0 18px' }}>Make something meaningful together.</h2>
+            <p style={{ lineHeight: 1.75, opacity: 0.9 }}>
+              Bring your group together for a fun, creative experience designed to encourage imagination, self-expression, and connection through art.
+            </p>
+            <p style={{ lineHeight: 1.75, opacity: 0.9 }}>
+              Whether you are planning an activity for children, a group, a special occasion, or a creative gathering, Kisetsu Expressions can help shape an enjoyable hands-on experience.
+            </p>
+
+            <div style={{ marginTop: 28, paddingTop: 24, borderTop: '1px solid rgba(255,255,255,.25)' }}>
+              <h3 style={{ marginBottom: 16 }}>What to expect</h3>
+              <p style={{ lineHeight: 1.8, margin: 0 }}>
+                🎨 Create — explore drawing, painting, and artistic activities<br />
+                💡 Explore — discover new ideas and creative techniques<br />
+                ✨ Express — turn imagination into something personal<br />
+                😊 Enjoy — share a relaxed and memorable creative experience
+              </p>
+            </div>
+
+            <div style={{ marginTop: 28, paddingTop: 24, borderTop: '1px solid rgba(255,255,255,.25)' }}>
+              <h3 style={{ marginBottom: 10 }}>Interested in a workshop?</h3>
+              <p style={{ lineHeight: 1.7, opacity: 0.9 }}>
+                Contact us to discuss your ideas and find out how we can plan a creative session for your group.
+              </p>
+              <p style={{ marginTop: 14, fontWeight: 700 }}>Call / WhatsApp: +971 54 573 5918</p>
+              <a
+                href={createWhatsappLink('Hello Kisetsu Expressions, I would like to know more about your creative workshops.')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="button button-light"
+                style={{ display: 'inline-block', marginTop: 12 }}
+              >
+                WhatsApp Us
+              </a>
+            </div>
+          </div>
+        </div>
       ) : null}
 
       {/* =========================
