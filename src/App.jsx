@@ -1,10 +1,12 @@
+import { FloatingContact, FeedbackSection, ContactLinks } from './components/StorefrontExtras.jsx'
+import { availableVariants, catalogCodes } from './lib/storefront.js'
 import { useEffect, useState } from 'react'
 
 import './App.css'
 import ProductModal from './ProductModal.jsx'
 
 import kisetsuLogo from './assets/kisetsu-logo.png'
-import magnateLogo from './assets/magnate-logo.png'
+const magnateLogo = '/products/magnate.png'
 
 import tshirt01 from './assets/kisetsu-tshirt1.jpg'
 import tshirt02 from './assets/kisetsu-tshirt2.jpg'
@@ -18,6 +20,9 @@ import { EditableText, EditableImage } from './components/Editable.jsx'
 import AdminChrome from './components/AdminChrome.jsx'
 import PaintingEditor from './components/PaintingEditor.jsx'
 import { ITEM_TYPES, fetchPaintings, uploadSiteImage } from './lib/paintings.js'
+import './storefront.css'
+import './carousel-update.css'
+import HomeCarousel from './components/HomeCarousel.jsx'
 
 
 function TshirtSwapImage({ primary, altImage, name }) {
@@ -406,7 +411,20 @@ function ArtworkPanel({
 
 
 function SiteBody() {
-  const { content: siteContent, canEdit, updateText } = useEditor()
+  useEffect(() => {
+    const header = document.querySelector('.website .navbar')
+    if (!header) return
+    const updateScroll = () => header.classList.toggle('is-scrolled', window.scrollY > 24)
+    const updateHeight = () => header.closest('.website').style.setProperty('--nav-height', `${header.offsetHeight}px`)
+    const observer = new ResizeObserver(updateHeight)
+    observer.observe(header)
+    updateHeight()
+    updateScroll()
+    window.addEventListener('scroll', updateScroll, { passive: true })
+    return () => { observer.disconnect(); window.removeEventListener('scroll', updateScroll) }
+  }, [])
+
+  const { content: siteContent, canEdit, updateText, contentLoaded, adminMode } = useEditor()
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [showPaintingsPanel, setShowPaintingsPanel] = useState(false)
   const [selectedPainting, setSelectedPainting] = useState(null)
@@ -414,8 +432,6 @@ function SiteBody() {
   const [selectedStudentArt, setSelectedStudentArt] = useState(null)
   const [showWorkshopPanel, setShowWorkshopPanel] = useState(false)
   const [showPromotionPopup, setShowPromotionPopup] = useState(false)
-  const [activeFeature, setActiveFeature] = useState(0)
-  const [isFeaturePaused, setIsFeaturePaused] = useState(false)
 
   const [paintings, setPaintings] = useState([])
   const [editingPainting, setEditingPainting] = useState(null) // painting object, or {} for "new", or null for closed
@@ -423,8 +439,6 @@ function SiteBody() {
   const [editingStudentPainting, setEditingStudentPainting] = useState(null)
   const [tshirtProducts, setTshirtProducts] = useState([])
   const [editingTshirt, setEditingTshirt] = useState(null)
-  const [heroUploading, setHeroUploading] = useState(false)
-  const [featureUploading, setFeatureUploading] = useState(null)
 
   const whatsappLink = 'https://wa.me/971545735918'
 
@@ -453,9 +467,9 @@ function SiteBody() {
   }
 
   useEffect(() => {
-    reloadPaintings()
-    reloadStudentPaintings()
-    reloadTshirtProducts()
+    reloadPaintings().catch(console.error)
+    reloadStudentPaintings().catch(console.error)
+    reloadTshirtProducts().catch(console.error)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -465,7 +479,7 @@ function SiteBody() {
     const promotion = siteContent.promotion
 
     if (
-      canEdit ||
+      adminMode || !contentLoaded ||
       !promotion?.enabled ||
       !promotion?.showPopup ||
       !promotion?.id
@@ -474,15 +488,15 @@ function SiteBody() {
       return
     }
 
-    const dismissedPromotionId = window.localStorage.getItem(
-      'kisetsu-dismissed-promotion'
-    )
+    let dismissedPromotionId
+    try { dismissedPromotionId = window.localStorage.getItem('kisetsu-dismissed-promotion') } catch { /* Private browsing may disable storage. */ }
 
     if (dismissedPromotionId !== promotion.id) {
-      setShowPromotionPopup(true)
+      const timer = window.setTimeout(() => setShowPromotionPopup(true), 12000)
+      return () => window.clearTimeout(timer)
     }
   }, [
-    canEdit,
+    adminMode, contentLoaded,
     siteContent.promotion?.enabled,
     siteContent.promotion?.showPopup,
     siteContent.promotion?.id,
@@ -492,10 +506,7 @@ function SiteBody() {
     const promotionId = siteContent.promotion?.id
 
     if (promotionId) {
-      window.localStorage.setItem(
-        'kisetsu-dismissed-promotion',
-        promotionId
-      )
+      try { window.localStorage.setItem('kisetsu-dismissed-promotion', promotionId) } catch { /* Dismiss for this visit. */ }
     }
 
     setShowPromotionPopup(false)
@@ -506,7 +517,6 @@ function SiteBody() {
     setShowWorkshopPanel(true)
   }
 
-  const heroImage = siteContent.hero.image
 
   const visiblePaintings = paintings
     .filter((painting) => canEdit || painting.status !== 'hidden')
@@ -532,46 +542,18 @@ function SiteBody() {
       status: item.status,
     }))
 
-  const features = siteContent.features.map((feature, index) => ({
-    ...feature,
-    index,
-    imageAlt: feature.title,
-  }))
-
-  useEffect(() => {
-    if (isFeaturePaused) return undefined
-
-    const timer = window.setInterval(() => {
-      setActiveFeature((current) => (current + 1) % features.length)
-    }, 6500)
-
-    return () => window.clearInterval(timer)
-  }, [features.length, isFeaturePaused])
-
-  async function handleHeroUpload(file) {
-    setHeroUploading(true)
-    try {
-      const { url } = await uploadSiteImage(file, 'hero')
-      updateText('hero.image', url)
-    } finally {
-      setHeroUploading(false)
-    }
-  }
-
+  const [featureUploading, setFeatureUploading] = useState(null)
   async function handleFeatureUpload(index, file) {
     setFeatureUploading(index)
     try {
       const { url } = await uploadSiteImage(file, 'features')
       updateText(`features.${index}.image`, url)
-    } finally {
-      setFeatureUploading(null)
-    }
+    } finally { setFeatureUploading(null) }
   }
-
-
   const staticTshirts = [
     {
-      number: '01',
+      number: 'K.E 01',
+      adultPrice: 60, kidsPrice: 55,
       image: tshirt01,
       name: 'Kisetsu T-Shirt 01',
       description:
@@ -579,7 +561,8 @@ function SiteBody() {
     },
 
     {
-      number: '02',
+      number: 'K.E 02',
+      adultPrice: 60, kidsPrice: 55,
       image: tshirt02,
       name: 'Kisetsu T-Shirt 02',
       description:
@@ -587,7 +570,8 @@ function SiteBody() {
     },
 
     {
-      number: '03',
+      number: 'K.E 03',
+      adultPrice: 60, kidsPrice: 55,
       image: tshirt03,
       name: 'Kisetsu T-Shirt 03',
       description:
@@ -595,7 +579,8 @@ function SiteBody() {
     },
 
     {
-      number: '04',
+      number: 'K.E 04',
+      adultPrice: 60, kidsPrice: 55,
       image: tshirt04Red,
       hoverImage: tshirt04White,
       name: 'Kisetsu T-Shirt 04',
@@ -615,26 +600,35 @@ function SiteBody() {
     },
   ]
 
-  // T-shirts added through the admin dashboard are appended after the
-  // original four static designs above, which keep their existing
-  // hover/print-color behaviour untouched.
+  const codes = catalogCodes(tshirtProducts, siteContent.productSettings)
+  useEffect(() => {
+    if (!canEdit || tshirtProducts.length === 0) return
+    const settings = siteContent.productSettings || {}
+    const assigned = catalogCodes(tshirtProducts, settings)
+    const missing = tshirtProducts.filter(row => !settings[row.id]?.number)
+    if (missing.length) {
+      const next = { ...settings }
+      missing.forEach(row => { next[row.id] = { ...next[row.id], number: assigned[row.id] } })
+      updateText('productSettings', next)
+    }
+  }, [canEdit, tshirtProducts, siteContent.productSettings, updateText])
   const dynamicTshirts = tshirtProducts
-  .filter((item) => canEdit || item.status !== 'hidden')
-  .map((item, index) => ({
-    id: item.id,
-    number: String(staticTshirts.length + index + 1).padStart(2, '0'),
-    image: item.image_url || tshirt01,
-    name: item.title,
-    description: item.description,
-    priceText: item.price_text,
-    category: item.category,
-    status: item.status,
-    isDynamic: true,
-    raw: item,
-  }))
-
-  const tshirts = [...staticTshirts, ...dynamicTshirts]
-
+    .filter(item => canEdit || item.status !== 'hidden')
+    .map(item => {
+      const config = siteContent.productSettings?.[item.id] || {}
+      return {
+        ...config, id: item.id, number: codes[item.id],
+        image: availableVariants(config)[0]?.images?.[0] || item.image_url || tshirt01,
+        name: item.title, description: item.description, priceText: item.price_text,
+        category: item.category, status: item.status, isDynamic: true, raw: item,
+      }
+    })
+  const purpose = siteContent.purposeProduct
+  const purposeImages = availableVariants(purpose)[0]?.images || []
+  const tshirts = [
+    ...(canEdit || (purpose.enabled !== false && purpose.status !== 'hidden') ? [{ ...purpose, image: purposeImages[0], featured: true }] : []),
+    ...staticTshirts, ...dynamicTshirts,
+  ]
 
   function openProductModal(shirt) {
     setSelectedProduct(shirt)
@@ -669,7 +663,8 @@ function SiteBody() {
         </a>
 
 
-        <nav className="nav-links">
+        <div className="nav-tagline"><EditableText path="hero.title" as="h1" preLine /></div>
+        <nav className="nav-links" aria-label="Main navigation">
 
           <a href="#home">
             Home
@@ -698,27 +693,6 @@ function SiteBody() {
         </nav>
 
 
-        <a
-  href={whatsappLink}
-  target="_blank"
-  rel="noopener noreferrer"
-  className="nav-contact nav-whatsapp-icon"
-  aria-label="Contact Kisetsu Expressions on WhatsApp"
-  title="WhatsApp"
->
-  <svg
-    viewBox="0 0 32 32"
-    width="28"
-    height="28"
-    aria-hidden="true"
-    focusable="false"
-  >
-    <path
-  fill="#25D366"
-      d="M16.04 3C9.4 3 4 8.36 4 14.96c0 2.62.86 5.05 2.32 7.02L4.8 27.5l5.68-1.49a12.08 12.08 0 0 0 5.55 1.39h.01C22.68 27.4 28 22.04 28 15.44 28 8.84 22.68 3 16.04 3Zm0 22.36h-.01a10.03 10.03 0 0 1-5.12-1.4l-.37-.22-3.37.88.9-3.28-.24-.38a9.9 9.9 0 0 1-1.53-5.3c0-5.48 4.47-9.94 9.97-9.94 5.5 0 9.96 4.46 9.96 9.94 0 5.49-4.46 9.7-10.19 9.7Zm5.47-7.46c-.3-.15-1.76-.86-2.03-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48a9 9 0 0 1-1.66-2.05c-.17-.3-.02-.46.13-.61.14-.13.3-.35.45-.52.15-.18.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.2-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.01-1.04 2.47s1.07 2.87 1.22 3.07c.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.69.63.71.22 1.36.19 1.87.11.57-.08 1.76-.72 2.01-1.41.25-.7.25-1.3.17-1.42-.07-.13-.27-.2-.57-.35Z"
-    />
-  </svg>
-</a>
       </header>
 
 
@@ -728,58 +702,141 @@ function SiteBody() {
             HERO
         ========================== */}
 
+        <HomeCarousel />
         <section
-          id="home"
-          className="hero-section"
-          style={{ '--hero-image': `url(${heroImage})` }}
+          id="tshirts"
+          className="tshirts-section"
         >
 
-          {canEdit ? (
-            <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
-              <EditableImage
-                src={heroImage}
-                alt="Hero background"
-                imgStyle={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0 }}
-                onUpload={handleHeroUpload}
-                uploading={heroUploading}
-              />
-            </div>
-          ) : null}
+          <div className="services-header">
 
-          <div className="hero-content" style={{ position: 'relative', zIndex: 2 }}>
+            <EditableText path="tshirtsSection.eyebrow" as="p" className="eyebrow" />
 
-            <EditableText path="hero.eyebrow" as="p" className="eyebrow" />
+            <EditableText path="tshirtsSection.heading" as="h2" preLine />
+            <a className="button button-primary talk-attention" href={whatsappLink} target="_blank" rel="noopener noreferrer">Talk to Us</a>
 
-            <EditableText path="hero.title" as="h1" preLine />
-
-            <EditableText path="hero.description" as="p" className="hero-description" />
+          </div>
 
 
-            <div className="hero-buttons">
+          <div className="tshirt-grid">
 
-              <a
-                href="#discover"
-                className="button button-primary"
+            {tshirts.map((shirt) => (
+
+              <article
+                className={`tshirt-card tshirt-card-interactive${shirt.featured ? ' purpose-featured' : ''}`}
+                key={shirt.id || shirt.number}
               >
-                Explore Kisetsu
-              </a>
+
+                <div
+                  className="tshirt-image"
+                  onClick={() => openProductModal(shirt)}
+                >
+
+                  {shirt.hoverImage ? (
+
+                    <TshirtSwapImage
+                      primary={shirt.image}
+                      altImage={shirt.hoverImage}
+                      name={shirt.name}
+                    />
+
+                  ) : (
+
+                    <img
+                      loading="lazy"
+                      src={shirt.image}
+                      alt={shirt.name}
+                    />
+
+                  )}
+
+                  {canEdit && shirt.isDynamic ? (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        setEditingTshirt(shirt.raw)
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: 10,
+                        right: 10,
+                        background: 'rgba(18,59,93,.88)',
+                        color: '#fff',
+                        border: 0,
+                        borderRadius: 999,
+                        padding: '6px 12px',
+                        fontSize: 12,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Edit
+                    </button>
+                  ) : null}
+
+                </div>
 
 
-              <a
-                href={whatsappLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="button button-secondary"
+                <div className="tshirt-info">
+
+                  <div>
+
+                    <span className="service-number">
+                      {shirt.featured ? "FEATURED · " : ""}{shirt.number}
+                    </span>
+
+
+                    <h3>
+                      {shirt.name}
+                    </h3>
+
+
+                    <p>
+                      {shirt.description}
+                    </p>
+
+                  </div>
+
+
+                  <button
+                    type="button"
+                    className="tshirt-order-trigger"
+                    onClick={() => openProductModal(shirt)}
+                  >
+                    Choose options →
+                  </button>
+
+                </div>
+
+              </article>
+
+            ))}
+
+            {canEdit ? (
+              <button
+                type="button"
+                onClick={() => setEditingTshirt({})}
+                className="tshirt-card"
+                style={{
+                  border: '2px dashed rgba(18,59,93,.4)',
+                  background: 'rgba(18,59,93,.04)',
+                  color: '#123b5d',
+                  cursor: 'pointer',
+                  fontSize: 15,
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: 220,
+                }}
               >
-                Talk to Us
-              </a>
-
-            </div>
+                + Add T-shirt
+              </button>
+            ) : null}
 
           </div>
 
         </section>
-
 
         {/* =========================
             CURRENT PROMOTION
@@ -847,86 +904,9 @@ function SiteBody() {
             FEATURED EXPRESSIONS
         ========================== */}
 
-        <section id="discover" className="discover-section">
-
-          <div className="discover-header">
-            <div>
-              <EditableText path="discover.eyebrow" as="p" className="eyebrow" />
-              <EditableText path="discover.heading" as="h2" preLine />
-            </div>
-
-            <button
-              type="button"
-              className="carousel-pause"
-              onClick={() => setIsFeaturePaused((paused) => !paused)}
-              aria-pressed={isFeaturePaused}
-            >
-              {isFeaturePaused ? 'Play slides' : 'Pause slides'}
-            </button>
-          </div>
-
-          <div className="feature-carousel" aria-label="Kisetsu Expressions offerings">
-            <div
-              className="feature-track"
-              style={{ transform: `translateX(-${activeFeature * 100}%)` }}
-            >
-              {features.map((feature) => (
-                <article className="feature-slide" key={feature.key}>
-                  <EditableImage
-                    src={feature.image}
-                    alt={feature.imageAlt}
-                    imgStyle={{ width: '100%', height: '100%', minHeight: 550, objectFit: 'cover' }}
-                    onUpload={(file) => handleFeatureUpload(feature.index, file)}
-                    uploading={featureUploading === feature.index}
-                  />
-                  <div className="feature-slide-content">
-                    <p className="eyebrow">KISETSU {feature.title.toUpperCase()}</p>
-                    <EditableText path={`features.${feature.index}.title`} as="h3" />
-                    <EditableText path={`features.${feature.index}.description`} as="p" />
-                    <a href={feature.href} className="button button-primary">
-                      {feature.action}
-                    </a>
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            <div className="carousel-controls">
-              <button
-                type="button"
-                className="carousel-arrow"
-                onClick={() => setActiveFeature((current) => (current - 1 + features.length) % features.length)}
-                aria-label="Show previous feature"
-              >
-                ←
-              </button>
-
-              <div className="carousel-dots">
-                {features.map((feature, index) => (
-                  <button
-                    type="button"
-                    key={feature.key}
-                    className={index === activeFeature ? 'is-active' : ''}
-                    onClick={() => setActiveFeature(index)}
-                    aria-label={`Show ${feature.title}`}
-                    aria-current={index === activeFeature ? 'true' : undefined}
-                  />
-                ))}
-              </div>
-
-              <button
-                type="button"
-                className="carousel-arrow"
-                onClick={() => setActiveFeature((current) => (current + 1) % features.length)}
-                aria-label="Show next feature"
-              >
-                →
-              </button>
-            </div>
-          </div>
-
+        <section id="discover" className="offering-links" aria-label="Explore Kisetsu">
+          {siteContent.features.map(feature => <a key={feature.key} href={feature.href}>{feature.title} <span aria-hidden="true">↗</span></a>)}
         </section>
-
 
         {/* =========================
             INTRODUCTION
@@ -1082,138 +1062,7 @@ function SiteBody() {
             T-SHIRT COLLECTION
         ========================== */}
 
-        <section
-          id="tshirts"
-          className="tshirts-section"
-        >
 
-          <div className="services-header">
-
-            <EditableText path="tshirtsSection.eyebrow" as="p" className="eyebrow" />
-
-            <EditableText path="tshirtsSection.heading" as="h2" preLine />
-
-          </div>
-
-
-          <div className="tshirt-grid">
-
-            {tshirts.map((shirt) => (
-
-              <article
-                className="tshirt-card tshirt-card-interactive"
-                key={shirt.number}
-              >
-
-                <div
-                  className="tshirt-image"
-                  onClick={() => openProductModal(shirt)}
-                >
-
-                  {shirt.hoverImage ? (
-
-                    <TshirtSwapImage
-                      primary={shirt.image}
-                      altImage={shirt.hoverImage}
-                      name={shirt.name}
-                    />
-
-                  ) : (
-
-                    <img
-                      src={shirt.image}
-                      alt={shirt.name}
-                    />
-
-                  )}
-
-                  {canEdit && shirt.isDynamic ? (
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        setEditingTshirt(shirt.raw)
-                      }}
-                      style={{
-                        position: 'absolute',
-                        top: 10,
-                        right: 10,
-                        background: 'rgba(18,59,93,.88)',
-                        color: '#fff',
-                        border: 0,
-                        borderRadius: 999,
-                        padding: '6px 12px',
-                        fontSize: 12,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Edit
-                    </button>
-                  ) : null}
-
-                </div>
-
-
-                <div className="tshirt-info">
-
-                  <div>
-
-                    <span className="service-number">
-                      {shirt.number}
-                    </span>
-
-
-                    <h3>
-                      {shirt.name}
-                    </h3>
-
-
-                    <p>
-                      {shirt.description}
-                    </p>
-
-                  </div>
-
-
-                  <button
-                    type="button"
-                    className="tshirt-order-trigger"
-                    onClick={() => openProductModal(shirt)}
-                  >
-                    Order via WhatsApp →
-                  </button>
-
-                </div>
-
-              </article>
-
-            ))}
-
-            {canEdit ? (
-              <button
-                type="button"
-                onClick={() => setEditingTshirt({})}
-                className="tshirt-card"
-                style={{
-                  border: '2px dashed rgba(18,59,93,.4)',
-                  background: 'rgba(18,59,93,.04)',
-                  color: '#123b5d',
-                  cursor: 'pointer',
-                  fontSize: 15,
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minHeight: 220,
-                }}
-              >
-                + Add T-shirt
-              </button>
-            ) : null}
-
-          </div>
-
-        </section>
 
 
         {/* =========================
@@ -1332,6 +1181,8 @@ function SiteBody() {
           FOOTER
       ========================== */}
 
+      <FeedbackSection whatsappLink={whatsappLink} />
+      <FloatingContact whatsappLink={whatsappLink} suppressed={!!(selectedProduct || showPaintingsPanel || selectedPainting || showStudentArtPanel || selectedStudentArt || showWorkshopPanel || showPromotionPopup)} />
       <footer className="footer">
 
         <div className="footer-main">
@@ -1384,27 +1235,8 @@ function SiteBody() {
 
             <div>
 
-              <h4>
-                CONNECT
-              </h4>
-
-
-              <a
-                href={whatsappLink}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                WhatsApp
-              </a>
-
-
-              <a
-                href={facebookLink}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Facebook
-              </a>
+              <h4>CONNECT</h4>
+              <ContactLinks whatsappLink={whatsappLink} facebookLink={facebookLink} />
 
             </div>
 
@@ -1434,11 +1266,11 @@ function SiteBody() {
             </span>
 
 
-            <img
+            <div className="magnate-logo-frame"><img
               src={magnateLogo}
               alt="Magnate eBiz"
               className="magnate-logo"
-            />
+            /></div>
 
           </div>
 

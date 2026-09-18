@@ -1,3 +1,4 @@
+import StorefrontManager from './StorefrontManager.jsx'
 import { useRef, useState } from 'react'
 
 import { useEditor } from '../EditorContext.jsx'
@@ -54,6 +55,7 @@ export default function AdminChrome({ adminMode }) {
     checkingAdmin,
   } = useEditor()
 
+  const [showStorefront, setShowStorefront] = useState(false)
   const [showPromotionManager, setShowPromotionManager] = useState(false)
 
   // The editor/login UI must only ever mount on the /admin route.
@@ -94,11 +96,13 @@ export default function AdminChrome({ adminMode }) {
   return (
     <>
       <Toolbar
+        onOpenStorefront={() => setShowStorefront(true)}
         onOpenPromotion={() => setShowPromotionManager(true)}
         promotionOpen={showPromotionManager}
       />
 
       <CatalogManager />
+      {showStorefront && <StorefrontManager onClose={() => setShowStorefront(false)} />}
 
       <StylePanel />
 
@@ -196,7 +200,7 @@ function AccessPendingGate() {
   )
 }
 
-function Toolbar({ onOpenPromotion, promotionOpen }) {
+function Toolbar({ onOpenPromotion, promotionOpen, onOpenStorefront }) {
   const {
     mode,
     setMode,
@@ -208,6 +212,7 @@ function Toolbar({ onOpenPromotion, promotionOpen }) {
 
   return (
     <div className="cms-toolbar">
+      <button type="button" onClick={onOpenStorefront}>Storefront</button>
       <span className="cms-toolbar-label">
         Editing website
       </span>

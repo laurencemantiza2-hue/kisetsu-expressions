@@ -1,163 +1,113 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
+import useDialog from './components/useDialog.js'
+import {
+  ADULT_SIZES,
+  KIDS_SIZES,
+  availableVariants,
+  orderMessage,
+} from './lib/storefront.js'
 
-const ADULT_SIZES = ['S', 'M', 'L', 'XL']
+export default function ProductModal({ product, whatsappLink, onClose }) {
+  const ref = useDialog(onClose)
+  const variants = availableVariants(product)
+  const hasVariants = Array.isArray(product.variants)
 
-const KIDS_SIZES = [
-  '4–5 years',
-  '6–7 years',
-  '8–9 years',
-  '10–11 years',
-]
-
-const ADULT_PRICE = 60
-const KIDS_PRICE = 55
-
-function ProductModal({ product, whatsappLink, onClose }) {
-  const printOptions = product.printOptions || []
-
-  const closeButtonRef = useRef(null)
-
-  const [printColor, setPrintColor] = useState(
-    printOptions[0] ? printOptions[0].label : null
+  const [shirt, setShirt] = useState(variants[0]?.shirt || '')
+  const [print, setPrint] = useState(
+    variants[0]?.print || product.printOptions?.[0]?.label || ''
   )
-
-  const [size, setSize] = useState(null)
-  const [category, setCategory] = useState(null)
+  const [category, setCategory] = useState('')
+  const [size, setSize] = useState('')
   const [quantity, setQuantity] = useState(1)
-  const [sizeError, setSizeError] = useState(false)
+  const [photo, setPhoto] = useState(0)
+  const [error, setError] = useState('')
+  const [guide, setGuide] = useState(false)
 
-  const selectedPrint = printOptions.find(
-    (option) => option.label === printColor
+  const variant = variants.find(
+    (v) => v.shirt === shirt && v.print === print
   )
 
-  const displayImage = selectedPrint
-    ? selectedPrint.image
-    : product.image
+  const images = hasVariants
+    ? variant?.images || []
+    : [
+        product.printOptions?.find((p) => p.label === print)?.image ||
+          product.image,
+      ]
 
-  const imageAlt = printColor
-    ? product.name + ' ' + printColor + ' print'
-    : product.name
-
-  const price =
-    category === 'Kids'
-      ? KIDS_PRICE
-      : category === 'Adult'
-        ? ADULT_PRICE
-        : null
-
-
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow
-
-    document.body.style.overflow = 'hidden'
-
-    closeButtonRef.current?.focus()
-
-    function handleKeyDown(event) {
-      if (event.key === 'Escape') {
-        onClose()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.body.style.overflow = previousOverflow
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [onClose])
-
-
-  function handleCategorySelect(nextCategory) {
-    setCategory(nextCategory)
-    setSize(null)
-    setSizeError(false)
-  }
-
-
-  function handleSizeSelect(nextSize) {
-    setSize(nextSize)
-    setSizeError(false)
-  }
-
-
-  function decreaseQuantity() {
-    setQuantity((current) =>
-      current > 1 ? current - 1 : 1
-    )
-  }
-
-
-  function increaseQuantity() {
-    setQuantity((current) => current + 1)
-  }
-
-
-  function buildOrderMessage() {
-    const lines = [
-      "Hi Kisetsu Expressions! I'm interested in ordering " +
-        product.name +
-        '.',
-      '',
-    ]
-
-    if (printColor) {
-      lines.push('Print Color: ' + printColor)
-    }
-
-    lines.push('Category: ' + category)
-    lines.push('Size: ' + size)
-    lines.push('Quantity: ' + quantity)
-    lines.push('Price: AED ' + price + ' each')
-    lines.push(
-      'Total: AED ' + price * quantity
-    )
-
-    return lines.join('\n')
-  }
-
-
-  const whatsappUrl =
-    whatsappLink +
-    '?text=' +
-    encodeURIComponent(buildOrderMessage())
-
-
-  function handleOrder(event) {
-    event.stopPropagation()
-
-    if (!category || !size) {
-      event.preventDefault()
-      setSizeError(true)
-    }
-  }
-
-
-  const availableSizes =
-    category === 'Kids'
-      ? KIDS_SIZES
-      : category === 'Adult'
-        ? ADULT_SIZES
+  const sizes =
+    category === 'Adult'
+      ? product.adultSizes || ADULT_SIZES
+      : category === 'Kids'
+        ? product.kidsSizes || KIDS_SIZES
         : []
 
+  const rawPrice =
+    category === 'Adult'
+      ? product.adultPrice
+      : category === 'Kids'
+        ? product.kidsPrice
+        : ''
+
+  const price =
+    category &&
+    rawPrice !== '' &&
+    rawPrice != null &&
+    Number.isFinite(Number(rawPrice))
+      ? Number(rawPrice)
+      : null
+
+  const purchasable =
+    !['hidden', 'sold', 'reserved'].includes(product.status) &&
+    (!hasVariants || !!variant)
+
+  const valid = !!category && !!size && purchasable
+
+  function chooseShirt(value) {
+    setShirt(value)
+    setPhoto(0)
+
+    if (!variants.some((v) => v.shirt === value && v.print === print)) {
+      setPrint(variants.find((v) => v.shirt === value)?.print || '')
+    }
+  }
+
+  const url =
+    `${whatsappLink}?text=` +
+    encodeURIComponent(
+      orderMessage(product, {
+        shirt,
+        print,
+        category,
+        size,
+        quantity,
+        price,
+      })
+    )
+
+  const choice = (label, selected, onClick, disabled = false) => (
+    <button
+      key={label}
+      type="button"
+      className={`product-choice${selected ? ' is-selected' : ''}`}
+      aria-pressed={selected}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      {label}
+    </button>
+  )
 
   return (
-    <div
-      className="product-modal-overlay"
-      onClick={onClose}
-      role="presentation"
-    >
-
+    <div className="product-modal-overlay" onClick={onClose}>
       <div
+        ref={ref}
         className="product-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="product-modal-title"
-        onClick={(event) => event.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
-
         <button
-          ref={closeButtonRef}
           type="button"
           className="product-modal-close"
           onClick={onClose}
@@ -166,275 +116,223 @@ function ProductModal({ product, whatsappLink, onClose }) {
           ×
         </button>
 
-
         <div className="product-modal-image">
+          {images[photo] ? (
+            <img
+              src={images[photo]}
+              alt={`${product.name}${
+                shirt ? `, ${shirt} shirt, ${print} print` : ''
+              }, view ${photo + 1}`}
+            />
+          ) : (
+            <p className="empty-photo">Photo unavailable for this option.</p>
+          )}
 
-          <img
-            src={displayImage}
-            alt={imageAlt}
-          />
-
+          {images.length > 1 && (
+            <div className="product-thumbnails" aria-label="Product photos">
+              {images.map((src, i) => (
+                <button
+                  key={src + i}
+                  type="button"
+                  aria-label={`View photo ${i + 1}`}
+                  aria-pressed={photo === i}
+                  onClick={() => setPhoto(i)}
+                >
+                  <img src={src} alt="" loading="lazy" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-
         <div className="product-modal-details">
+          <p className="product-modal-number">{product.number}</p>
+          <h2 id="product-modal-title">{product.name}</h2>
+          <p className="product-modal-description">{product.description}</p>
 
-          <p className="product-modal-number">
-            {product.number}
-          </p>
-
-
-          <h2 id="product-modal-title">
-            {product.name}
-          </h2>
-
-
-          <p className="product-modal-description">
-            {product.description}
-          </p>
-
-
-          {/* PRINT COLOR */}
-
-          {printOptions.length > 0 ? (
-
+          {hasVariants && (
             <div className="product-modal-group">
-
-              <p className="product-modal-label">
-                PRINT COLOR
-              </p>
-
-
+              <p className="product-modal-label">T-SHIRT COLOR</p>
               <div className="product-modal-options">
+                {['Black', 'White'].map((color) =>
+                  choice(
+                    color,
+                    shirt === color,
+                    () => chooseShirt(color),
+                    !variants.some((v) => v.shirt === color)
+                  )
+                )}
+              </div>
+            </div>
+          )}
 
-                {printOptions.map((option) => (
-
-                  <button
-                    key={option.label}
-                    type="button"
-                    className={
-                      'product-choice' +
-                      (
-                        printColor === option.label
-                          ? ' is-selected'
-                          : ''
+          {(hasVariants || product.printOptions?.length > 0) && (
+            <div className="product-modal-group">
+              <p className="product-modal-label">PRINT COLOR</p>
+              <div className="product-modal-options">
+                {(hasVariants
+                  ? ['White', 'Black', 'Colored']
+                  : product.printOptions.map((p) => p.label)
+                ).map((color) =>
+                  choice(
+                    color,
+                    print === color,
+                    () => {
+                      setPrint(color)
+                      setPhoto(0)
+                    },
+                    hasVariants &&
+                      !variants.some(
+                        (v) => v.shirt === shirt && v.print === color
                       )
-                    }
-                    aria-pressed={
-                      printColor === option.label
-                    }
-                    onClick={() =>
-                      setPrintColor(option.label)
-                    }
-                  >
-                    {option.label}
-                  </button>
-
-                ))}
-
+                  )
+                )}
               </div>
 
+              {hasVariants && (
+                <small>
+                  Only available, contrasting combinations can be selected.
+                </small>
+              )}
             </div>
-
-          ) : null}
-
-
-          {/* CATEGORY */}
+          )}
 
           <div className="product-modal-group">
-
-            <p className="product-modal-label">
-              SIZE CATEGORY
-            </p>
-
-
+            <p className="product-modal-label">SIZE CATEGORY</p>
             <div className="product-modal-options">
-
-              <button
-                type="button"
-                className={
-                  'product-choice' +
-                  (
-                    category === 'Adult'
-                      ? ' is-selected'
-                      : ''
-                  )
-                }
-                aria-pressed={category === 'Adult'}
-                onClick={() =>
-                  handleCategorySelect('Adult')
-                }
-              >
-                Adult
-              </button>
-
-
-              <button
-                type="button"
-                className={
-                  'product-choice' +
-                  (
-                    category === 'Kids'
-                      ? ' is-selected'
-                      : ''
-                  )
-                }
-                aria-pressed={category === 'Kids'}
-                onClick={() =>
-                  handleCategorySelect('Kids')
-                }
-              >
-                Kids
-              </button>
-
+              {['Adult', 'Kids'].map((c) =>
+                choice(c, category === c, () => {
+                  setCategory(c)
+                  setSize('')
+                  setError('')
+                })
+              )}
             </div>
-
           </div>
 
-
-          {/* PRICE */}
-
-          <div className="product-modal-group">
-
-            <p className="product-modal-label">
-              PRICE
-            </p>
-
-
-            <p
-              style={{
-                margin: 0,
-                fontSize: '24px',
-                fontWeight: 800,
-                color: '#123b5d',
-              }}
-            >
-              {price
-                ? `AED ${price}`
-                : 'Select a size category'}
-            </p>
-
-          </div>
-
-
-          {/* SIZE */}
-
-          {category ? (
-
+          {category && (
             <div className="product-modal-group">
-
               <p className="product-modal-label">
-                {category === 'Kids'
-                  ? 'KIDS SIZE'
-                  : 'ADULT SIZE'}
+                {category.toUpperCase()} SIZE
               </p>
 
-
               <div className="product-modal-options">
-
-                {availableSizes.map((option) => (
-
-                  <button
-                    key={option}
-                    type="button"
-                    className={
-                      'product-choice' +
-                      (
-                        size === option
-                          ? ' is-selected'
-                          : ''
-                      )
-                    }
-                    aria-pressed={size === option}
-                    onClick={() =>
-                      handleSizeSelect(option)
-                    }
-                  >
-                    {option}
-                  </button>
-
-                ))}
-
+                {sizes.map((s) =>
+                  choice(s, size === s, () => {
+                    setSize(s)
+                    setError('')
+                  })
+                )}
               </div>
 
-
-              {sizeError ? (
-
-                <p
-                  className="product-modal-error"
-                  role="alert"
-                >
-                  Please select a size category and size.
-                </p>
-
-              ) : null}
-
-            </div>
-
-          ) : null}
-
-
-          {/* QUANTITY */}
-
-          <div className="product-modal-group">
-
-            <p className="product-modal-label">
-              QUANTITY
-            </p>
-
-
-            <div className="product-quantity">
+              {sizes.length === 0 && (
+                <p>No sizes currently available in this category.</p>
+              )}
 
               <button
                 type="button"
-                onClick={decreaseQuantity}
+                className="size-guide-toggle"
+                aria-expanded={guide}
+                onClick={() => setGuide(!guide)}
+              >
+                Size guide {guide ? '−' : '+'}
+              </button>
+
+              {guide && (
+                <div className="size-guide">
+                  <p>
+                    Measurements in centimeters. Scroll sideways to view the
+                    full chart.
+                  </p>
+                  <div
+                    tabIndex={0}
+                    aria-label={`${category} size chart, scroll horizontally`}
+                  >
+                    <img
+                      src={`/products/${
+                        category === 'Adult' ? 'adult' : 'kids'
+                      }-sizes.png`}
+                      alt={`${category} T-shirt measurements: chest length, sleeve length, shoulder width, back length; centimeters`}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="product-modal-group">
+            <p className="product-modal-label">PRICE</p>
+            <p aria-live="polite">
+              {!category
+                ? 'Select size category'
+                : price != null
+                  ? `AED ${price} each · AED ${price * quantity} total`
+                  : product.priceText || 'Ask us for the price'}
+            </p>
+          </div>
+
+          <div className="product-modal-group">
+            <p className="product-modal-label">QUANTITY</p>
+            <div className="product-quantity">
+              <button
+                type="button"
                 aria-label="Decrease quantity"
+                disabled={quantity === 1}
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
               >
                 −
               </button>
-
-
-              <span aria-live="polite">
-                {quantity}
-              </span>
-
-
+              <span aria-live="polite">{quantity}</span>
               <button
                 type="button"
-                onClick={increaseQuantity}
                 aria-label="Increase quantity"
+                disabled={quantity === 99}
+                onClick={() => setQuantity(Math.min(99, quantity + 1))}
               >
                 +
               </button>
-
             </div>
-
           </div>
 
+          {!purchasable && (
+            <p role="status">
+              {product.status === 'sold'
+                ? 'This item is sold.'
+                : product.status === 'reserved'
+                  ? 'This item is reserved.'
+                  : 'This item is currently unavailable.'}
+            </p>
+          )}
 
-          {/* WHATSAPP */}
+          {error && (
+            <p className="product-modal-error" role="alert">
+              {error}
+            </p>
+          )}
 
           <a
             className="product-order-button"
-            href={
-              category && size
-                ? whatsappUrl
-                : '#'
-            }
+            href={valid ? url : '#'}
             target="_blank"
             rel="noopener noreferrer"
-            aria-disabled={!category || !size}
-            onClick={handleOrder}
+            aria-disabled={!valid}
+            onClick={(e) => {
+              if (!valid) {
+                e.preventDefault()
+                setError(
+                  purchasable
+                    ? 'Please select a size category and size.'
+                    : 'This item is currently unavailable.'
+                )
+              }
+            }}
           >
-            ORDER VIA WHATSAPP →
+            INQUIRE VIA WHATSAPP →
           </a>
 
+          <small>We’ll confirm stock, price, and delivery in our reply.</small>
         </div>
-
       </div>
-
     </div>
   )
 }
-
-export default ProductModal

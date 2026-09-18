@@ -1,0 +1,100 @@
+/* Homepage refresh. Kept separate so existing catalog and admin styles remain intact. */
+.website .navbar {position:relative;height:auto;min-height:100px;padding:12px 4%;gap:22px;background:#102b40;color:#fff;flex-wrap:wrap;backdrop-filter:none;}
+.website .nav-logo {background:#fffdf7;border-radius:10px;padding:8px 12px;flex-shrink:0;}
+.website .nav-logo img {width:130px;}
+.nav-tagline {margin-right:auto;}
+.nav-tagline h1 {font-size:clamp(17px,1.65vw,25px)!important;line-height:1.12;margin:0;color:#fff!important;letter-spacing:-.5px;}
+.website .nav-links {display:flex;gap:22px;flex-wrap:wrap;}
+.website .nav-links a {color:#fff;font-size:12px;}
+.website .nav-links a:hover {opacity:1;color:#b9e2df;}
+.website .nav-whatsapp-icon {position:fixed;right:24px;bottom:24px;z-index:1100;background:#25d366;border:2px solid #102b40;border-radius:50%;width:60px;height:60px;padding:14px;box-shadow:0 6px 24px #0003;display:grid;place-items:center;}
+.website .nav-whatsapp-icon path {fill:#10251b;}
+.home-carousel {background:#102b40;position:relative;scroll-margin-top:0;}
+.home-slides {position:relative;width:100%;aspect-ratio:16 / 9;max-height:calc(100svh - 180px);min-height:200px;overflow:hidden;}
+.home-slide {position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity 1000ms ease;}
+.home-slide.is-active {opacity:1;pointer-events:auto;z-index:1;}
+.home-slide img,.home-slide .cms-image-wrap {display:block;width:100%;height:100%;}
+.home-slide img {object-fit:contain;}
+.home-controls {display:flex;align-items:center;justify-content:center;gap:8px;padding:5px 12px;background:#102b40;color:white;}
+.home-controls button {width:40px;height:36px;border:1px solid #ffffff45;border-radius:30px;background:transparent;color:white;font-size:18px;cursor:pointer;}
+.home-controls button:hover {background:#ffffff20;}
+.home-dots {display:flex;gap:2px;}
+.home-dots button {border:0;width:32px;display:grid;place-items:center;}
+.home-dots span {display:block;width:7px;height:7px;border-radius:50%;background:#ffffff60;}
+.home-dots [aria-current] span {background:#fff;width:20px;border-radius:6px;}
+.carousel-editor-note {margin:0;padding:8px 20px;color:white;text-align:center;font-size:13px;}
+.website #tshirts {padding:48px 6% 70px;background:#faf9f5;}
+.website #tshirts .services-header {margin:0;}
+.website #tshirts h2 {font-size:clamp(30px,4vw,54px);line-height:1.08;}
+.website #tshirts .tshirt-grid {margin-top:32px;grid-template-columns:repeat(3,minmax(0,1fr));}
+.website #tshirts .tshirt-card:first-child {border:1px solid #b5c7c7;background:#fff;}
+.website #tshirts .tshirt-image img {object-fit:contain;background:#f0eeea;}
+.website section[id] {scroll-margin-top:16px;}
+.home-controls button:focus-visible,.nav-links a:focus-visible {outline:3px solid #88e3da;outline-offset:3px;}
+@media(max-width:1000px) {
+ .website .navbar {gap:14px;}
+ .website .nav-links {width:100%;justify-content:center;gap:22px;padding:8px 0 2px;}
+ .nav-tagline {margin-left:auto;margin-right:0;}
+ .website #tshirts .tshirt-grid {grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media(max-width:540px) {
+ .website .navbar {padding:12px 16px;}
+ .website .nav-logo img {width:100px;}
+ .website .nav-links {gap:14px 18px;}
+ .website .nav-links a {font-size:10px;letter-spacing:.5px;}
+ .nav-tagline h1 {font-size:17px!important;}
+ .home-slides {min-height:0;max-height:none;}
+ .website #tshirts {padding:32px 20px 48px;}
+ .website #tshirts .tshirt-grid {grid-template-columns:1fr;gap:24px;}
+ .website .nav-whatsapp-icon {width:54px;height:54px;right:16px;bottom:16px;}
+}
+@media(prefers-reduced-motion:reduce) {
+ .home-slide {transition:none;}
+ html {scroll-behavior:auto;}
+}
+/* Keep transparent logo margins from enlarging the header. */
+.website .nav-logo {width:160px;height:70px;padding:0;overflow:hidden;justify-content:center;}
+.website .nav-logo img {width:200px;height:200px;max-width:none;flex-shrink:0;object-fit:contain;}
+.home-slides {max-height:calc(100svh - 230px);}
+.website #tshirts h2,.website #tshirts h3 {color:#123b5d;}
+.website #tshirts .eyebrow {color:#96521c;}
+.website #tshirts .tshirt-info p {color:#465765;}
+.website #tshirts .service-number {color:#96521c;}
+@media(max-width:540px) {
+ .website .nav-logo {width:125px;height:58px;}
+ .website .nav-logo img {width:160px;height:160px;}
+ .home-slides {max-height:none;}
+}
+.website > main {padding-top:0;}
+
+/* Sticky navigation and full-width carousel revision. */
+.website {overflow:clip;}
+.website .navbar {
+  position:sticky;top:0;z-index:1000;
+  border-bottom:2px solid #f5f1e880;
+  transition:background-color .3s ease,box-shadow .3s ease;
+}
+.website .navbar.is-scrolled {
+  background:rgba(16,43,64,.78);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  box-shadow:0 4px 18px #07162526;
+}
+.website section[id] {scroll-margin-top:calc(var(--nav-height, 110px) + 12px);}
+.home-slides {width:100%;aspect-ratio:16 / 9;max-height:none;min-height:0;}
+.home-slide {transition:opacity .55s ease;}
+.home-slide img {width:100%;height:100%;object-fit:cover;object-position:center;}
+.website .talk-attention {
+  animation:none;background:#123b5d;color:#fff;border:1px solid #123b5d;
+}
+.website .talk-attention:hover,.website .talk-attention:focus-visible {
+  animation:brand-talk-cycle 1.5s ease-in-out infinite;
+}
+@keyframes brand-talk-cycle {
+  0%,100% {background-color:#123b5d;color:#fff;border-color:#123b5d;}
+  50% {background-color:#f5f1e8;color:#123b5d;border-color:#123b5d;}
+}
+@media(prefers-reduced-motion:reduce) {
+  .home-slide,.website .navbar {transition:none;}
+  .website .talk-attention:hover,.website .talk-attention:focus-visible {animation:none;background:#f5f1e8;color:#123b5d;}
+}
+.home-slides {max-height:calc(100svh - var(--nav-height, 110px) - 60px);}

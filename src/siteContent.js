@@ -1,3 +1,4 @@
+import { defaultPurposeProduct } from './lib/storefront.js'
 import heroImage from './assets/hero-kisetsu.jpg'
 import featureTshirts from './assets/feature-tshirts.jpg'
 import featurePaintings from './assets/feature-paintings.jpg'
@@ -8,6 +9,15 @@ import featureWorkshops from './assets/feature-workshops.jpg'
 // with defaults that match the original hard-coded site exactly so nothing
 // changes visually until an admin actually edits something.
 export const defaultSiteContent = {
+  carousel: {
+    purpose: '/carousel/01-live-with-purpose.png',
+    paintings: '/carousel/02-paintings.png',
+    studio: '/carousel/03-creative-studio.png',
+    workshops: '/carousel/04-workshops.png',
+  },
+  purposeProduct: defaultPurposeProduct,
+  productSettings: {},
+  feedback: { eyebrow: "YOUR KISETSU EXPERIENCE", heading: "Stories from our community.", items: [] },
   hero: {
     eyebrow: 'KISETSU EXPRESSIONS',
     title: 'Your Story,\nBeautifully Gifted.',

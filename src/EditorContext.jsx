@@ -1,3 +1,4 @@
+import { validateStorefront } from './lib/storefront.js'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { hasSupabaseConfig, supabase } from './supabase.js'
 import { defaultSiteContent, mergeSiteContent, getByPath, setByPath } from './siteContent.js'
@@ -91,6 +92,8 @@ export function EditorProvider({ adminMode, children }) {
 
   const save = useCallback(async () => {
     if (!hasSupabaseConfig) return
+    const validation = validateStorefront(content)
+    if (validation) { setStatus(validation); return }
     setStatus('Saving…')
     const { error } = await supabase.from('site_settings').upsert({
       id: 'default',
