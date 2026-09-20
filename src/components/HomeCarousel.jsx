@@ -4,10 +4,10 @@ import { EditableImage } from './Editable.jsx'
 import { uploadSiteImage } from '../lib/paintings.js'
 
 const slides = [
-  ['purpose', 'Live With Purpose T-shirts'],
-  ['paintings', 'Original paintings'],
-  ['studio', 'Kisetsu creative studio'],
-  ['workshops', 'Creative workshops'],
+  ['purposeSeptember20', 'Live With Purpose T-shirts', '/carousel/september-20/01-live-with-purpose.png'],
+  ['paintingsSeptember20', 'Paintings', '/carousel/september-20/02-paintings.png'],
+  ['studentsSeptember20', 'Students’ Work', '/carousel/september-20/03-students-work.png'],
+  ['workshopsSeptember20', 'Workshop', '/carousel/september-20/04-workshop.png'],
 ]
 
 export default function HomeCarousel() {
@@ -42,11 +42,11 @@ export default function HomeCarousel() {
   }
   return <section id="home" className="home-carousel" aria-label="Kisetsu highlights" aria-roledescription="carousel">
     <div className="home-slides">
-      {slides.map(([key, label], index) => <div key={key}
+      {slides.map(([key, label, defaultImage], index) => <div key={key}
         className={'home-slide' + (index === active ? ' is-active' : '')}
         aria-hidden={index !== active} inert={index !== active}
         role="group" aria-roledescription="slide" aria-label={`${index + 1} of ${slides.length}: ${label}`}>
-        <EditableImage src={content.carousel[key]} alt={label}
+        <EditableImage src={content.carousel?.[key] || defaultImage} alt={label}
           onUpload={file => upload(key, file)} uploading={uploading === key} />
       </div>)}
     </div>
