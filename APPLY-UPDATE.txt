@@ -1,0 +1,61 @@
+KISETSU EXPRESSIONS — HOMEPAGE UPDATE
+
+This update is based on the kisetsu-expressions-main.zip you supplied.
+It has not been published to your live website.
+
+APPLY TO YOUR EXISTING CURSOR PROJECT
+1. Extract this ZIP using Windows Extract All.
+2. Make a backup copy of your existing project folder.
+3. Open the extracted kisetsu-expressions-main folder.
+4. Copy its src and public folders together.
+5. Paste them inside your existing project folder, beside package.json.
+6. Choose Replace for matching files. Merge folders if Windows asks.
+   This keeps your existing Git repository and environment configuration.
+7. In Cursor, open your existing project folder.
+8. In Terminal run: npm run dev
+9. Open the localhost address printed in the terminal.
+
+No package.json or dependency changes are required. If this is a fresh
+checkout without installed dependencies, run npm install first.
+
+WHAT TO CHECK
+- Navy header, readable logo, white tagline/navigation.
+- First carousel slide: Live With Purpose, then paintings, studio, workshops.
+- Every 5.5 seconds the image crossfades. Arrows, dots and pause work.
+- The full T-shirt grid comes immediately after the carousel.
+- First product: L.P 01, followed by existing K.E shirts and admin products.
+- Click a shirt, select options and verify its WhatsApp inquiry.
+- Test your existing /admin login, catalog editing and Save with your own
+  Supabase configuration before publishing.
+- In /admin pause the carousel, select a slide with arrows, use Change image,
+  then Save in the admin toolbar. Existing feature images remain separate.
+
+NOTES
+- Visitors who enable reduced motion get manual slide controls without autoplay.
+- The promotion popup is delayed 20 seconds so it does not obscure the hero
+  immediately. Its existing promotion settings still apply.
+- LP photos supplied support black/white print, black/colored print, and
+  white/colored print. No white-shirt/black-print photo was supplied for this
+  update, so that option is not advertised. No new designs were invented.
+- LP pricing is inquiry-only. Adult/kids sizes follow the existing project;
+  confirm availability with the client. LP default product/options are in
+  src/App.jsx; existing dynamic admin catalogs are retained.
+- The carousel uses the approved generated PNG banners in public/carousel.
+  These are approximately 16:9 (1672 x 941), not exact 1920 x 1080 exports.
+- This ZIP implements the agreed homepage/carousel/grid update. It does not
+  import every feature from the earlier separate storefront ZIP, such as
+  feedback management, size charts, or the storefront variant manager.
+
+FILES CHANGED
+src/App.jsx
+src/ProductModal.jsx
+src/siteContent.js
+src/components/HomeCarousel.jsx (new)
+src/carousel-update.css (new)
+public/carousel/ (new images)
+
+VALIDATION
+Production build passes. Browser checks passed for autoplay, pause, manual
+controls, mobile overflow, image loading, section order, shirt selections,
+WhatsApp option details and reduced-motion behavior. No browser errors.
+Live Supabase login/save requires your existing local environment configuration.
